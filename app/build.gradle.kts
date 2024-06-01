@@ -52,6 +52,8 @@ android {
 dependencies {
     val lifecycle_version = "2.8.1"
     val activity_version = "1.9.0"
+    val nav_version = "2.7.7"
+    val room_version = "2.6.1"
 
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
@@ -78,6 +80,31 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 
     implementation("androidx.activity:activity-ktx:$activity_version")
+
+    implementation("androidx.navigation:navigation-fragment-ktx:$nav_version")
+    implementation("androidx.navigation:navigation-ui-ktx:$nav_version")
+    implementation("androidx.navigation:navigation-compose:$nav_version")
+
+    implementation("androidx.room:room-runtime:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
+//    implementation("com.squareup.picasso:picasso:2.8.0")
+
+//    implementation("org.opencv:opencv-android:4.9.0")
+
+    implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
+
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+
+    implementation("com.android.volley:volley:1.2.1")
+
+//    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
