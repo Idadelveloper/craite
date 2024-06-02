@@ -106,6 +106,8 @@ dependencies {
 
     implementation("androidx.compose.foundation:foundation:1.6.7")
 
+    implementation("androidx.compose.ui:ui:1.6.7")
+
 //    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
 
     implementation(libs.androidx.core.ktx)

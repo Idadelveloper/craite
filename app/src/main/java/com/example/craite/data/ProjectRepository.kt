@@ -46,7 +46,7 @@ abstract class ProjectDatabase : RoomDatabase() {
 }
 
 class ProjectRepository(private val database: ProjectDatabase) {
-    val allProjects: Flow<List<Project>> = database.projectDao().getAllProjects()
+//    val allProjects: Flow<List<Project>> = database.projectDao().getAllProjects()
 
     suspend fun insert(project: Project) {
         database.projectDao().insert(project)

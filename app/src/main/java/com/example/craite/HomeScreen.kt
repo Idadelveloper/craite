@@ -81,7 +81,7 @@ fun ProjectCard(project: Project, onProjectClick: () -> Unit) {
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(text = project.name, style = MaterialTheme.typography.bodySmall)
+            project.name?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
             // Add a preview image or thumbnail here if needed
         }
     }

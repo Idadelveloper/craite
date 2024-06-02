@@ -16,11 +16,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.craite.data.Project
 import com.example.craite.data.ProjectRepository
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewProjectScreen(navController: NavHostController, projectRepository: ProjectRepository) {
     var projectName by remember { mutableStateOf(TextFieldValue("")) }
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -45,8 +47,10 @@ fun NewProjectScreen(navController: NavHostController, projectRepository: Projec
 
             Button(
                 onClick = {
-                    val newProject = Project(name = projectName.text)
-                    projectRepository.insert(newProject)
+                    coroutineScope.launch {
+                        val newProject = Project(name = projectName.text)
+                        projectRepository.insert(newProject)
+                    }
                     navController.navigate("home")
                 },
                 modifier = Modifier.padding(16.dp)
@@ -57,4 +61,3 @@ fun NewProjectScreen(navController: NavHostController, projectRepository: Projec
     }
 }
 
-}
