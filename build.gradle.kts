@@ -3,3 +3,9 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.jetbrains.kotlin.android) apply false
 }
+
+//repositories {
+//    google()
+//    mavenCentral()
+//    maven { uri("https://jitpack.io") } // For OpenCV
+//}

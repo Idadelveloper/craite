@@ -234,13 +234,13 @@ fun GreetingPreview() {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    CraiteTheme {
-        HomeScreen(name = "craite", modifier = Modifier)
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun HomeScreenPreview() {
+//    CraiteTheme {
+//        HomeScreen(name = "craite", modifier = Modifier)
+//    }
+//}
 
 //@Preview(showBackground = true)
 //@Composable

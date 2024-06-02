@@ -104,6 +104,8 @@ dependencies {
 
     implementation("com.android.volley:volley:1.2.1")
 
+    implementation("androidx.compose.foundation:foundation:1.6.7")
+
 //    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
 
     implementation(libs.androidx.core.ktx)
