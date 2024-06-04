@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -38,6 +39,9 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
+        dataBinding = true
+        var room = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -88,6 +92,7 @@ dependencies {
     implementation("androidx.room:room-runtime:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
 
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
@@ -107,6 +112,8 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:1.6.7")
 
     implementation("androidx.compose.ui:ui:1.6.7")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
 //    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
 
