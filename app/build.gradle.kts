@@ -115,6 +115,9 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    ksp("com.google.dagger:hilt-compiler:2.51.1")
+
 //    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
 
     implementation(libs.androidx.core.ktx)
