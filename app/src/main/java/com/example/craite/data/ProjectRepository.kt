@@ -1,27 +1,23 @@
 package com.example.craite.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 class ProjectRepository(private val database: ProjectDatabase) {
-//    val allProjects: Flow<List<Project>> = database.projectDao().getAllProjects()
 
-    suspend fun insert(project: Project) {
-        database.projectDao().insert(project)
+    fun insert(project: Project): Flow<Unit> = flow {
+        database.projectDao().insert(project).collect { emit(Unit) }
     }
 
-    suspend fun update(project: Project) {
-        database.projectDao().update(project)
+    fun update(project: Project): Flow<Unit> = flow {
+        database.projectDao().update(project).collect { emit(Unit) }
     }
 
-    suspend fun delete(project: Project) {
-        database.projectDao().delete(project)
+    fun delete(project: Project): Flow<Unit> = flow {
+        database.projectDao().delete(project).collect { emit(Unit) }
     }
 
-    fun getProjectById(id: Int): Flow<Project> {
-        return database.projectDao().getProjectById(id)
-    }
+    fun getProjectById(id: Int): Flow<Project> = database.projectDao().getProjectById(id)
 
-    fun getAllProjects(): Flow<List<Project>> {
-        return database.projectDao().getAllProjects()
-    }
+    fun getAllProjects(): Flow<List<Project>> = database.projectDao().getAllProjects()
 }

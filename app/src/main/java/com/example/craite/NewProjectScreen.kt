@@ -1,7 +1,6 @@
 package com.example.craite
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
@@ -13,16 +12,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.craite.data.Project
 import com.example.craite.data.ProjectRepository
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewProjectScreen(navController: NavHostController, projectRepository: ProjectRepository) {
-    var projectName by remember { mutableStateOf(TextFieldValue("")) }
-    val coroutineScope = rememberCoroutineScope()
+fun NewProjectScreen(
+    navController: NavHostController,
+    projectRepository: ProjectRepository
+) {
+    var projectName: TextFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val viewModel: NewProjectViewModel = viewModel()
 
     Scaffold(
         topBar = {
@@ -47,17 +48,17 @@ fun NewProjectScreen(navController: NavHostController, projectRepository: Projec
 
             Button(
                 onClick = {
-                    coroutineScope.launch {
-                        val newProject = Project(name = projectName.text)
-                        projectRepository.insert(newProject)
+                    viewModel.createProject(projectName.text, projectRepository) {
+                        navController.navigate("home")
                     }
-                    navController.navigate("home")
                 },
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
+                enabled = projectName.text.isNotBlank()
             ) {
                 Text("Create Project")
             }
         }
     }
 }
+
 

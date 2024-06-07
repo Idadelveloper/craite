@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -38,12 +39,16 @@ fun ProjectScreen(
     val viewModel: ProjectViewModel = viewModel()
     viewModel.getProject(projectId, projectRepository)
 
-    val projectState = viewModel.project.collectAsState(initial = null)
+    val uiState = viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(title = {
-                projectState.value?.let { Text(it.name) } ?: Text("Loading...")
+                when (uiState.value) {
+                    is ProjectUiState.Loading -> Text("Loading...")
+                    is ProjectUiState.Success -> Text((uiState.value as ProjectUiState.Success).project.name)
+                    is ProjectUiState.Error -> Text("Error loading project")
+                }
             })
         }
     ) { paddingValues ->
@@ -54,24 +59,34 @@ fun ProjectScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Display Project Details
-            projectState.value?.let { project ->
-                Text(text = "Project Name: ${project.name}", style = MaterialTheme.typography.bodySmall)
+            when (uiState.value) {
+                is ProjectUiState.Loading -> {
+                    // Show a loading indicator
+                    CircularProgressIndicator()
+                }
+                is ProjectUiState.Success -> {
+                    val project = (uiState.value as ProjectUiState.Success).project
+                    Text(text = "Project Name: ${project.name}", style = MaterialTheme.typography.bodySmall)
 
-                // Display selected videos and images (with thumbnails)
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    items(project.videos) { videoUri ->
-                        VideoItem(videoUri = videoUri)
-                    }
-                    items(project.images) { imageUri ->
-                        ImageItem(imageUri = imageUri)
+                    // Display selected videos and images (with thumbnails)
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        items(project.videos) { videoUri ->
+                            VideoItem(videoUri = videoUri)
+                        }
+                        items(project.images) { imageUri ->
+                            ImageItem(imageUri = imageUri)
+                        }
                     }
                 }
-            } ?: Text("Loading...")
+                is ProjectUiState.Error -> {
+                    // Show an error message
+                    Text("Error loading project")
+                }
+            }
 
             // Implement Editing Tools
             Button(onClick = { /* Handle video editing */ }) {

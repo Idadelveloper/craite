@@ -10,6 +10,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -25,7 +27,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CraiteTheme {
-                val database = ProjectDatabase.getInstance(this)
+                val database = ProjectDatabase.getDatabase(this)
                 val projectRepository = ProjectRepository(database)
                 CraiteApp(projectRepository)
             }
@@ -50,10 +52,16 @@ fun CraiteApp(projectRepository: ProjectRepository) {
     }
 }
 
+//@Composable
+//fun <T> NavBackStackEntry.sharedViewModel(navController: NavController): T {
+//    val projectId = arguments?.getInt("projectId") ?: 0
+//    return navController.getViewModel(projectId)
+//}
+
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    CraiteApp(projectRepository = ProjectRepository(ProjectDatabase.getInstance(null)))
+//    CraiteApp(projectRepository = ProjectRepository(ProjectDatabase.getDatabase(null)))
 }
 
 
