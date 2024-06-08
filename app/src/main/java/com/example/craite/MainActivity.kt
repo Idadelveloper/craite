@@ -26,66 +26,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            CraiteTheme {
-                val database = ProjectDatabase.getDatabase(this)
-                val projectRepository = ProjectRepository(database)
-                CraiteApp(projectRepository)
-            }
+
+
         }
     }
 }
 
 
-@Composable
-fun CraiteApp(projectRepository: ProjectRepository) {
-    val navController = rememberNavController()
-
-    Surface(color = MaterialTheme.colorScheme.background) {
-        NavHost(navController = navController, startDestination = "home") {
-            composable("home") { HomeScreen(navController, projectRepository) }
-            composable("newProject") { NewProjectScreen(navController, projectRepository) }
-            composable("project/{projectId}") { backStackEntry ->
-                val projectId = backStackEntry.arguments?.getInt("projectId") ?: 0
-                ProjectScreen(navController, projectRepository, projectId)
-            }
-        }
-    }
-}
-
-//@Composable
-//fun <T> NavBackStackEntry.sharedViewModel(navController: NavController): T {
-//    val projectId = arguments?.getInt("projectId") ?: 0
-//    return navController.getViewModel(projectId)
-//}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-//    CraiteApp(projectRepository = ProjectRepository(ProjectDatabase.getDatabase(null)))
-}
-
-
-
-//@Preview(showBackground = true)
-//@Composable
-//fun GreetingPreview() {
-//    CraiteTheme {
-//        Greeting("Android")
-//    }
-//}
-
-//@Preview(showBackground = true)
-//@Composable
-//fun HomeScreenPreview() {
-//    CraiteTheme {
-//        HomeScreen(name = "craite", modifier = Modifier)
-//    }
-//}
-
-//@Preview(showBackground = true)
-//@Composable
-//fun MainScreenPreview() {
-//    CraiteTheme {
-//        MainScreen(this@)
-//    }
-//}
