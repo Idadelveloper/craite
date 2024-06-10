@@ -1,5 +1,6 @@
 package com.example.craite
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,13 +13,19 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.example.craite.data.Project
 import com.example.craite.data.ProjectDatabase
+import com.example.craite.ui.theme.CraiteTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.toList
 
@@ -26,56 +33,37 @@ import kotlinx.coroutines.flow.toList
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = Room.databaseBuilder(
-            applicationContext,
-            ProjectDatabase::class.java, "project_database"
-        ).build()
         enableEdgeToEdge()
-
         setContent {
-            Column {
-                ProjectList(db.projectDao().getAllProjects(), rememberNavController())
-                Button(
-                    modifier = Modifier.padding(16.dp),
-                    onClick = {TODO()}
-                ) {
-                    Text(text = "Add Project")
-                }
+            CraiteTheme {
+                val navController = rememberNavController()
+                CraiteApp(navController, applicationContext)
             }
-
-        }
-    }
-}
-
-
-@Composable
-fun ProjectList(projects: Flow<List<Project>>, navController: NavController) {
-    val projectList by projects.collectAsState(initial = emptyList())
-    LazyColumn {
-        items(projectList) { project ->
-            ProjectCard(project, navController)
         }
     }
 }
 
 @Composable
-fun ProjectCard(project: Project, navController: NavController) {
-    Card (
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+fun CraiteApp(navController: NavHostController, context: Context) {
+    val db = Room.databaseBuilder(
+        context,
+        ProjectDatabase::class.java, "project_database"
+    ).build()
 
-    ){
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = project.name,
-                style = MaterialTheme.typography.bodySmall
-            )
+    NavHost(navController = navController, startDestination = "home_screen") {
+        composable("home_screen") {
+            HomeScreen(navController = navController, db = db, modifier = Modifier)
+        }
+        composable("new_project_screen") {
+            NewProject(navController = navController)
         }
     }
+
+
 }
+
+
+
 
 
 
