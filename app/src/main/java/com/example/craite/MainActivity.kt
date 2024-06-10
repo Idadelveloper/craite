@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +35,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             Column {
                 ProjectList(db.projectDao().getAllProjects(), rememberNavController())
+                Button(
+                    modifier = Modifier.padding(16.dp),
+                    onClick = {TODO()}
+                ) {
+                    Text(text = "Add Project")
+                }
             }
 
         }

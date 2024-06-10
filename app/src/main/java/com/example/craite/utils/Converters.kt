@@ -5,32 +5,27 @@ import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-class Converters {
+class ProjectTypeConverters {
+
     @TypeConverter
     fun fromUriList(uris: List<Uri>): String {
-        return uris.joinToString(",") { it.toString() }
+        return Gson().toJson(uris)
     }
 
     @TypeConverter
-    fun toUriList(value: String): List<Uri> {
-        return if (value.isEmpty()) {
-            emptyList()
-        } else {
-            value.split(",").map { Uri.parse(it) }
-        }
+    fun toUriList(uriString: String): List<Uri> {
+        val listType = object : TypeToken<List<Uri>>() {}.type
+        return Gson().fromJson(uriString, listType)
     }
 
     @TypeConverter
-    fun fromMap(map: Map<String?, Any?>?): String {
-        val gson = Gson()
-        return gson.toJson(map)
+    fun fromMap(map: Map<String, Any>): String {
+        return Gson().toJson(map)
     }
 
     @TypeConverter
-    fun toMap(json: String?): Map<String, Any> {
-        val gson = Gson()
-        val token: TypeToken<Map<String?, Any?>?> = object : TypeToken<Map<String?, Any?>?>() {}
-        return gson.fromJson(json, token.type)
+    fun toMap(mapString: String): Map<String, Any> {
+        val mapType = object : TypeToken<Map<String, Any>>() {}.type
+        return Gson().fromJson(mapString, mapType)
     }
-
 }
