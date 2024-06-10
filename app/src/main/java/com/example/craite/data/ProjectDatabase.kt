@@ -7,3 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.craite.utils.Converters
 
+@Database(entities = [Project::class], version = 1)
+abstract class ProjectDatabase: RoomDatabase() {
+    abstract fun projectDao(): ProjectDao
+}
