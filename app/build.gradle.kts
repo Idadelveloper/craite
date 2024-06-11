@@ -119,7 +119,12 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.51.1")
     ksp("com.google.dagger:hilt-compiler:2.51.1")
 
+    implementation("io.coil-kt:coil:2.6.0")
+
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
 //    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

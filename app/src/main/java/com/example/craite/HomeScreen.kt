@@ -34,7 +34,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier, db: ProjectData
         ProjectList(db.projectDao().getAllProjects(), rememberNavController())
         Button(
             modifier = Modifier.padding(16.dp),
-            onClick = {TODO()}
+            onClick = { navController.navigate("new_project_screen") }
         ) {
             Text(text = "Add Project")
         }
