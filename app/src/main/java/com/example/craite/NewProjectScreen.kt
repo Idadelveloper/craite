@@ -31,12 +31,14 @@ fun NewProject(
     navController: NavController
 ) {
     var projectName by remember { mutableStateOf("") }
-    var videos by remember {
+    var selectedMedia by remember {
         mutableStateOf(emptyList<Uri>())
     }
     val pickMultipleMedia = rememberLauncherForActivityResult(PickMultipleVisualMedia(10)) {uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
+            selectedMedia = uris
+            Log.d("PhotoPicker", "Selected media: $selectedMedia")
         } else {
             Log.d("PhotoPicker", "No media selected")
         }
@@ -63,7 +65,7 @@ fun NewProject(
                 ) {
                     Button(
                         onClick = {
-                            pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                            pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageAndVideo))
                         }
                     ) {
                         Text("Add Videos")
@@ -77,8 +79,8 @@ fun NewProject(
                     }
                 }
             }
-            items(videos.size) { index ->
-                Text("Video $index")
+            items(selectedMedia.size) { index ->
+                Text("Selected video $index")
             }
         }
 
