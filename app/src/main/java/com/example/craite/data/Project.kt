@@ -12,7 +12,7 @@ import androidx.room.TypeConverters
 data class Project(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
-    val videosAndImages: List<Uri>,
-    val editingSettings: Map<String, Any>,
+    val media: List<Uri>,
+    val editingSettings: Map<String, Any>? = null,
     val geminiResponse: String? = null
 )

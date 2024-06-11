@@ -48,14 +48,15 @@ fun CraiteApp(navController: NavHostController, context: Context) {
     val db = Room.databaseBuilder(
         context,
         ProjectDatabase::class.java, "project_database"
-    ).build()
+    ).fallbackToDestructiveMigration()
+        .build()
 
     NavHost(navController = navController, startDestination = "home_screen") {
         composable("home_screen") {
             HomeScreen(navController = navController, db = db, modifier = Modifier)
         }
         composable("new_project_screen") {
-            NewProject(navController = navController)
+            NewProject(navController = navController, projectDatabase = db)
         }
     }
 

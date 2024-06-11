@@ -23,13 +23,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.craite.data.Project
+import com.example.craite.data.ProjectDao
+import com.example.craite.data.ProjectDatabase
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun NewProject(
-    navController: NavController
+    navController: NavController,
+    projectDatabase: ProjectDatabase
 ) {
+    val newProjectViewModel: NewProjectViewModel = viewModel()
     var projectName by remember { mutableStateOf("") }
     var selectedMedia by remember {
         mutableStateOf(emptyList<Uri>())
@@ -53,10 +62,13 @@ fun NewProject(
             value = projectName,
             onValueChange = { projectName = it },
             label = { Text("Project Name") },
+
         )
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             item {
                 Row(
@@ -72,7 +84,8 @@ fun NewProject(
                     }
                     Button(
                         onClick = {
-                            TODO()
+                            Log.d("PhotoPicker", "Creating project")
+                            newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia)
                         }
                     ) {
                         Text("Create Project")
