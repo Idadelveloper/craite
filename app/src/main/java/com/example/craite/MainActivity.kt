@@ -18,9 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.craite.data.Project
@@ -51,12 +53,23 @@ fun CraiteApp(navController: NavHostController, context: Context) {
     ).fallbackToDestructiveMigration()
         .build()
 
-    NavHost(navController = navController, startDestination = "home_screen") {
+    NavHost(navController = navController, startDestination = "home_screen", modifier = Modifier.fillMaxSize().statusBarsPadding()) {
         composable("home_screen") {
             HomeScreen(navController = navController, db = db, modifier = Modifier)
         }
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context)
+        }
+        composable(
+            route = "video_edit_screen/{projectId}",
+            arguments = listOf(navArgument("projectId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getInt("projectId") ?: 0
+            val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
+            val mediaUris = project?.media
+            if (mediaUris != null) {
+                VideoEditScreen(mediaUris)
+            }
         }
     }
 

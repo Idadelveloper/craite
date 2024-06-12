@@ -87,7 +87,7 @@ fun NewProject(
                     Button(
                         onClick = {
                             Log.d("PhotoPicker", "Creating project")
-                            newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context)
+                            newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context, navController)
                         }
                     ) {
                         Text("Create Project")

@@ -24,4 +24,7 @@ interface ProjectDao {
 
     @Query("SELECT * FROM Project WHERE id = :id")
     fun getProjectById(id: Int): Flow<Project>
+
+    @Query("SELECT * FROM Project ORDER BY id DESC LIMIT 1")
+    suspend fun getLastInsertedProject(): Project
 }
