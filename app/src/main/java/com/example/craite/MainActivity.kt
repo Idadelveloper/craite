@@ -56,7 +56,7 @@ fun CraiteApp(navController: NavHostController, context: Context) {
             HomeScreen(navController = navController, db = db, modifier = Modifier)
         }
         composable("new_project_screen") {
-            NewProject(navController = navController, projectDatabase = db)
+            NewProject(navController = navController, projectDatabase = db, context = context)
         }
     }
 

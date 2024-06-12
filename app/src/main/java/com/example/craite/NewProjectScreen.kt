@@ -1,5 +1,6 @@
 package com.example.craite
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -36,7 +37,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun NewProject(
     navController: NavController,
-    projectDatabase: ProjectDatabase
+    projectDatabase: ProjectDatabase,
+    context: Context
 ) {
     val newProjectViewModel: NewProjectViewModel = viewModel()
     var projectName by remember { mutableStateOf("") }
@@ -85,7 +87,7 @@ fun NewProject(
                     Button(
                         onClick = {
                             Log.d("PhotoPicker", "Creating project")
-                            newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia)
+                            newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context)
                         }
                     ) {
                         Text("Create Project")
