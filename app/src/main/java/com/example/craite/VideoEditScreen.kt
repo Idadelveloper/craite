@@ -47,6 +47,7 @@ fun VideoEditScreen(mediaUris: List<Uri>) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     var currentMediaIndex by remember { mutableIntStateOf(0) }
+    var mediaItemMap = mediaUris.indices.associateWith {MediaItem.fromUri(Uri.parse(mediaUris[it].toString()))}
 
     Scaffold(
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
@@ -68,29 +69,18 @@ fun VideoEditScreen(mediaUris: List<Uri>) {
             ) {
                 val currentUri = mediaUris.getOrNull(currentMediaIndex)
                 if (currentUri != null) {
-                    if (currentUri.toString().endsWith(".mp4")) { // Check if it's a video
-                        AndroidView(
-                            factory = { context ->
-                                PlayerView(context).apply {
-                                    player = exoPlayer.apply {
-                                        setMediaItem(MediaItem.fromUri(currentUri))
-                                        prepare()
-                                        playWhenReady = true // Autoplay video
-                                    }
+                    AndroidView(
+                        factory = { context ->
+                            PlayerView(context).apply {
+                                player = exoPlayer.apply {
+                                    mediaItemMap[currentMediaIndex]?.let { setMediaItem(it) }
+                                    prepare()
+                                    playWhenReady = true // Autoplay video
                                 }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else { // Assume it's an image
-                        val imageBitmap = loadBitmapFromUri(context, currentUri)
-                        if (imageBitmap != null) {
-                            Image(
-                                bitmap = imageBitmap.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
