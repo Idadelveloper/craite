@@ -1,5 +1,6 @@
 package com.example.craite
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +32,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier, db: ProjectData
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        ProjectList(db.projectDao().getAllProjects(), rememberNavController())
+        ProjectList(db.projectDao().getAllProjects(), navController)
         Button(
             modifier = Modifier.padding(16.dp),
             onClick = { navController.navigate("new_project_screen") }
@@ -62,7 +63,9 @@ fun ProjectCard(project: Project, navController: NavController) {
 
         ){
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp).clickable(onClick = {
+                navController.navigate("video_edit_screen/${project.id}")
+            })
         ) {
             Text(
                 text = project.name,

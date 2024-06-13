@@ -37,13 +37,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import androidx.navigation.NavController
 import com.example.craite.data.ProjectDao
 import java.io.InputStream
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoEditScreen(mediaUris: List<Uri>) {
+fun VideoEditScreen(mediaUris: List<Uri>, navController: NavController) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     var currentMediaIndex by remember { mutableIntStateOf(0) }
