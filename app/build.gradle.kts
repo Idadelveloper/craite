@@ -6,6 +6,7 @@ plugins {
     id("dagger.hilt.android.plugin")
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
     kotlin("plugin.serialization") version "2.0.0"
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -58,6 +59,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.firebase.firestore)
     val lifecycle_version = "2.8.1"
     val activity_version = "1.9.0"
     val nav_version = "2.7.7"
@@ -110,6 +112,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.9.1")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.1")
 
     implementation("com.android.volley:volley:1.2.1")
 
