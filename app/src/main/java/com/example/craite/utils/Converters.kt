@@ -3,7 +3,9 @@ package com.example.craite.utils
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.room.TypeConverter
+import com.example.craite.data.EditingSettings
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
@@ -13,40 +15,31 @@ class ProjectTypeConverters {
 //    val gson = GsonBuilder()
 //        .registerTypeAdapter(Uri::class.java, UriTypeAdapter())
 //        .create()
-    val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriJsonAdapter()).create()
+//    val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriJsonAdapter()).create()
+    val gson = Gson()
 
     @TypeConverter
     fun fromUriList(uris: List<Uri>): String {
-        return gson.toJson(uris)
+        val uriStrings = uris.map { it.toString() }
+        return gson.toJson(uriStrings)
     }
 
     @TypeConverter
     fun toUriList(uriString: String): List<Uri> {
-        val listType = object : TypeToken<List<Uri>>() {}.type
-        return gson.fromJson(uriString, listType)
+        val listType = object : TypeToken<List<String>>() {}.type
+        val uriStrings = gson.fromJson<List<String>>(uriString, listType)
+        return uriStrings.map { Uri.parse(it) }
     }
 
     @TypeConverter
-    fun fromMap(map: Map<String, Any>): String {
-        return gson.toJson(map)
+    fun fromEditingSettings(settings: EditingSettings?): String {
+        return gson.toJson(settings)
     }
 
     @TypeConverter
-    fun toMap(mapString: String): Map<String, Any> {
-        val mapType = object : TypeToken<Map<String, Any>>() {}.type
-        return gson.fromJson(mapString, mapType)
+    fun toEditingSettings(settingsString: String?): EditingSettings? {
+        return gson.fromJson(settingsString, EditingSettings::class.java)
     }
 
-    @TypeConverter
-    fun fromBitmap(bitmap: Bitmap): ByteArray {
-        val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-        return outputStream.toByteArray()
-    }
-
-    @TypeConverter
-    fun toBitmap(byteArray: ByteArray): Bitmap {
-        return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-    }
 
 }

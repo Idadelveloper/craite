@@ -1,5 +1,6 @@
 package com.example.craite
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,6 +65,7 @@ fun ProjectCard(project: Project, navController: NavController) {
         ){
         Column(
             modifier = Modifier.padding(16.dp).clickable(onClick = {
+                Log.d("URIs", "${project.media}")
                 navController.navigate("video_edit_screen/${project.id}")
             })
         ) {

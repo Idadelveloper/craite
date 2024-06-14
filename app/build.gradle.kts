@@ -4,6 +4,8 @@ plugins {
     id("com.google.devtools.ksp")
     alias(libs.plugins.compose.compiler)
     id("dagger.hilt.android.plugin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    kotlin("plugin.serialization") version "2.0.0"
 }
 
 android {
@@ -123,6 +125,8 @@ dependencies {
     implementation("io.coil-kt:coil:2.6.0")
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
 //    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
 

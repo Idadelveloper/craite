@@ -13,6 +13,6 @@ data class Project(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val media: List<Uri>,
-    val editingSettings: Map<String, Any>? = null,
+    val editingSettings: EditingSettings? = null,
     val geminiResponse: String? = null
 )

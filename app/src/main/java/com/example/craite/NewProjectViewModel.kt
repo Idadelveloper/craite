@@ -17,6 +17,8 @@ class NewProjectViewModel: ViewModel() {
         Log.d("media uri: ", "here are the project $uris")
         viewModelScope.launch {
             try {
+                Log.d("project name before saving: ", "$projectName")
+                Log.d("project media before saving: ", "$uris")
                 projectDao.insert(project)
                 Toast.makeText(context, "Successfully created project", Toast.LENGTH_SHORT).show()
                 val projectId = projectDao.getLastInsertedProject().id
