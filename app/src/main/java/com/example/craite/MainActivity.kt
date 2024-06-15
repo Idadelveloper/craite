@@ -110,15 +110,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
 
 }
 
-//@Composable
-//fun SignIn() {
-//    Button(onClick = {
-//
-//    }
-//    ) {
-//        Text("Sign in")
-//    }
-//}
+
 
 
 
