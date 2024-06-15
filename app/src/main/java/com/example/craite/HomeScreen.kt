@@ -23,17 +23,18 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.craite.data.Project
 import com.example.craite.data.ProjectDatabase
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.Flow
 
 
 @Composable
-fun HomeScreen(navController: NavController, modifier: Modifier, db: ProjectDatabase) {
+fun HomeScreen(navController: NavController, modifier: Modifier, db: ProjectDatabase, user: FirebaseUser?) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        ProjectList(db.projectDao().getAllProjects(), navController)
+        ProjectList(db.projectDao().getAllProjects(), navController, user)
         Button(
             modifier = Modifier.padding(16.dp),
             onClick = { navController.navigate("new_project_screen") }
@@ -45,18 +46,18 @@ fun HomeScreen(navController: NavController, modifier: Modifier, db: ProjectData
 }
 
 @Composable
-fun ProjectList(projects: Flow<List<Project>>, navController: NavController) {
+fun ProjectList(projects: Flow<List<Project>>, navController: NavController, user: FirebaseUser?) {
     val projectList by projects.collectAsState(initial = emptyList())
     LazyColumn {
         items(projectList) { project ->
-            ProjectCard(project, navController)
+            ProjectCard(project, navController, user)
         }
     }
 }
 
 
 @Composable
-fun ProjectCard(project: Project, navController: NavController) {
+fun ProjectCard(project: Project, navController: NavController, user: FirebaseUser?) {
     Card (
         modifier = Modifier
             .fillMaxWidth()

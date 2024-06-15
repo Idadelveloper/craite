@@ -39,16 +39,18 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import com.example.craite.data.ProjectDao
+import com.google.firebase.auth.FirebaseUser
 import java.io.InputStream
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoEditScreen(mediaUris: List<Uri>, navController: NavController) {
+fun VideoEditScreen(mediaUris: List<Uri>, navController: NavController, user: FirebaseUser?) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     var currentMediaIndex by remember { mutableIntStateOf(0) }
     var mediaItemMap = mediaUris.indices.associateWith {MediaItem.fromUri(Uri.parse(mediaUris[it].toString()))}
+
 
     Scaffold(
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
@@ -103,6 +105,9 @@ fun VideoEditScreen(mediaUris: List<Uri>, navController: NavController) {
                     }
                 }
             }
+            Button(onClick = {
+
+            }) { Text("Upload Videos") }
 
             // Editing Controls (Add your desired controls here)
             // ... (Same as before, but now operate on the selected media item)

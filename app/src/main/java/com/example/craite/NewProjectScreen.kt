@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import com.example.craite.data.Project
 import com.example.craite.data.ProjectDao
 import com.example.craite.data.ProjectDatabase
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.launch
 
 
@@ -38,7 +39,8 @@ import kotlinx.coroutines.launch
 fun NewProject(
     navController: NavController,
     projectDatabase: ProjectDatabase,
-    context: Context
+    context: Context,
+    user: FirebaseUser?
 ) {
     val newProjectViewModel: NewProjectViewModel = viewModel()
     var projectName by remember { mutableStateOf("") }
@@ -87,7 +89,9 @@ fun NewProject(
                     Button(
                         onClick = {
                             Log.d("PhotoPicker", "Creating project")
-                            newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context, navController)
+                            if (user != null) {
+                                newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context, navController, user)
+                            }
                         }
                     ) {
                         Text("Create Project")

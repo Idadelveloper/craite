@@ -2,6 +2,8 @@ package com.example.craite
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,37 +30,69 @@ import androidx.room.RoomDatabase
 import com.example.craite.data.Project
 import com.example.craite.data.ProjectDatabase
 import com.example.craite.ui.theme.CraiteTheme
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 
 class MainActivity : ComponentActivity() {
+    private lateinit var auth: FirebaseAuth
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        auth = Firebase.auth
+        if (auth.currentUser == null) {
+            signInAnonymously()
+        }
         setContent {
             CraiteTheme {
                 val navController = rememberNavController()
-                CraiteApp(navController, applicationContext)
+                val user = auth.currentUser
+                Log.d("user", "$user")
+                CraiteApp(navController, applicationContext, user)
             }
         }
+    }
+
+    private fun signInAnonymously() {
+        auth.signInAnonymously()
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success
+                    val user = auth.currentUser
+                    Toast.makeText(applicationContext, "Sucessfully signed in", Toast.LENGTH_SHORT).show()
+                } else {
+                    // Handle sign-in failure
+                    val exception = task.exception
+                    Toast.makeText(applicationContext, "Error signing in: $exception", Toast.LENGTH_SHORT).show()
+                }
+            }
     }
 }
 
 @Composable
-fun CraiteApp(navController: NavHostController, context: Context) {
+fun CraiteApp(navController: NavHostController, context: Context, currentUser: FirebaseUser?) {
     val db = Room.databaseBuilder(
         context,
         ProjectDatabase::class.java, "project_database"
     ).fallbackToDestructiveMigration()
         .build()
 
+    val user by remember { mutableStateOf(currentUser) }
+
     NavHost(navController = navController, startDestination = "home_screen", modifier = Modifier.fillMaxSize().statusBarsPadding()) {
         composable("home_screen") {
-            HomeScreen(navController = navController, db = db, modifier = Modifier)
+            HomeScreen(navController = navController, db = db, modifier = Modifier, user = user)
         }
         composable("new_project_screen") {
-            NewProject(navController = navController, projectDatabase = db, context = context)
+            NewProject(navController = navController, projectDatabase = db, context = context, user = user)
         }
         composable(
             route = "video_edit_screen/{projectId}",
@@ -68,13 +102,24 @@ fun CraiteApp(navController: NavHostController, context: Context) {
             val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
             val mediaUris = project?.media
             if (mediaUris != null) {
-                VideoEditScreen(mediaUris,navController)
+                VideoEditScreen(mediaUris, navController, user)
             }
         }
     }
 
 
 }
+
+//@Composable
+//fun SignIn() {
+//    Button(onClick = {
+//
+//    }
+//    ) {
+//        Text("Sign in")
+//    }
+//}
+
 
 
 

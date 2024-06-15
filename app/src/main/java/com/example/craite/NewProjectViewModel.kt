@@ -9,10 +9,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.example.craite.data.Project
 import com.example.craite.data.ProjectDao
+import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.launch
 
 class NewProjectViewModel: ViewModel() {
-    fun createProject(projectDao: ProjectDao, projectName: String, uris: List<Uri>, context: Context, navController: NavController) {
+    fun createProject(projectDao: ProjectDao, projectName: String, uris: List<Uri>, context: Context, navController: NavController, user: FirebaseUser) {
         val project = Project(name = projectName, media = uris)
         Log.d("media uri: ", "here are the project $uris")
         viewModelScope.launch {
