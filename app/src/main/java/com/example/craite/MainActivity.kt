@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val user = auth.currentUser
                 Log.d("user", "$user")
+                Log.d("user id", "${user?.uid}")
                 CraiteApp(navController, applicationContext, user)
             }
         }

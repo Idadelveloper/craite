@@ -60,6 +60,7 @@ android {
 
 dependencies {
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.functions)
     val lifecycle_version = "2.8.1"
     val activity_version = "1.9.0"
     val nav_version = "2.7.7"
