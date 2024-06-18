@@ -81,7 +81,7 @@ fun NewProject(
                 ) {
                     Button(
                         onClick = {
-                            pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.ImageAndVideo))
+                            pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.VideoOnly))
                         }
                     ) {
                         Text("Add Videos")

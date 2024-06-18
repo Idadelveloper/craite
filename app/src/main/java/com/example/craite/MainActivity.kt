@@ -8,17 +8,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,19 +17,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
-import androidx.room.RoomDatabase
-import com.example.craite.data.Project
 import com.example.craite.data.ProjectDatabase
 import com.example.craite.ui.theme.CraiteTheme
+import com.example.craite.utils.CommonUtils.Companion.stringToBundle
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 
 class MainActivity : ComponentActivity() {
@@ -100,6 +85,10 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             arguments = listOf(navArgument("projectId") { type = NavType.IntType })
         ) { backStackEntry ->
             val projectId = backStackEntry.arguments?.getInt("projectId") ?: 0
+
+//            val bundle = backStackEntry.arguments?.getString("bundle")?.let { stringToBundle(it) }
+//            val timestamps = bundle?.getIntegerArrayList("timestamps") ?: arrayListOf()
+
             val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
             val mediaUris = project?.media
             if (mediaUris != null) {
