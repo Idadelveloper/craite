@@ -27,6 +27,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.launch
 import com.google.android.gms.tasks.Tasks
+import com.google.firebase.firestore.ktx.firestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -47,13 +48,15 @@ import okhttp3.internal.toImmutableList
 
 class NewProjectViewModel: ViewModel() {
     private val storageRef = Firebase.storage.reference
+    private val firestoreDb = Firebase.firestore
     fun createProject(
         projectDao: ProjectDao,
         projectName: String,
         uris: List<Uri>,
         context: Context,
         navController: NavController,
-        user: FirebaseUser
+        user: FirebaseUser,
+        prompt: String
     ) {
         val project = Project(name = projectName, media = uris)
         Log.d("media uri: ", "here are the project $uris")
@@ -84,10 +87,37 @@ class NewProjectViewModel: ViewModel() {
                 uploadCompletionSource.addOnCompleteListener { task ->
                     if (task.isSuccessful && task.result.all { it.isSuccessful }) {
                         Toast.makeText(context, "Videos uploaded successfully", Toast.LENGTH_SHORT).show()
+
+                        // Send prompt and video directory to Firestore with similar path structure
+                        val promptData = hashMapOf(
+                            "prompt" to prompt,
+                            "videoDirectory" to "users/${user.uid}/projects/$projectId/videos",
+                            "userId" to user.uid,
+                            "projectId" to projectId
+                        )
+
+                        // Create a Firestore document path mirroring the Storage path
+                        val promptDocRef = firestoreDb.collection("users")
+                            .document(user.uid)
+                            .collection("projects")
+                            .document(projectId.toString())
+                            .collection("prompts")
+                            .document() // Generate a unique ID for the prompt document
+
+                        promptDocRef.set(promptData)
+                            .addOnSuccessListener {
+                                Log.d("Firestore", "Prompt data added with ID: ${promptDocRef.id}")
+                                Toast.makeText(context, "Prompt data added with ID: ${promptDocRef.id}", Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("Firestore", "Error adding prompt data", e)
+                                Toast.makeText(context, "Error saving prompt data", Toast.LENGTH_SHORT).show()
+                            }
+
                         navController.navigate("video_edit_screen/$projectId")
                     } else {
                         Toast.makeText(context, "Error uploading videos", Toast.LENGTH_SHORT).show()
-                        // Handle the failure (e.g., retry, delete the project)
+                        // Handle the failure
                     }
                 }
             } catch (e: Exception) {

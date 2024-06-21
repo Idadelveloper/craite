@@ -47,6 +47,7 @@ fun NewProject(
     var selectedMedia by remember {
         mutableStateOf(emptyList<Uri>())
     }
+    val prompt = "What do you think is going on in these videos"
     val pickMultipleMedia = rememberLauncherForActivityResult(PickMultipleVisualMedia(10)) {uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
@@ -90,7 +91,7 @@ fun NewProject(
                         onClick = {
                             Log.d("PhotoPicker", "Creating project")
                             if (user != null) {
-                                newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context, navController, user)
+                                newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context, navController, user, prompt)
                             }
                         }
                     ) {
