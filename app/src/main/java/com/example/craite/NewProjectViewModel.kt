@@ -49,6 +49,7 @@ import okhttp3.internal.toImmutableList
 class NewProjectViewModel: ViewModel() {
     private val storageRef = Firebase.storage.reference
     private val firestoreDb = Firebase.firestore
+    private var videoNames  = mutableMapOf<String, String>() // video name: uri string
     fun createProject(
         projectDao: ProjectDao,
         projectName: String,
@@ -75,8 +76,13 @@ class NewProjectViewModel: ViewModel() {
                     val fileRef = userFolderRef.child(fileName)
                     fileRef.putFile(uri)
                         .addOnSuccessListener {
+                            videoNames[fileName] = uri.toString()
                             Log.d("FirebaseStorage", "File uploaded: ${fileRef.path}")
                             Toast.makeText(context, "File uploaded: ${fileRef.path}", Toast.LENGTH_SHORT).show()
+
+                            // store key-value pairs of uploaded video names and uris
+                            project.mediaNames = videoNames
+                            Log.d("VideoNames", "Video names: $videoNames")
                         }.addOnFailureListener { exception ->
                             Log.e("FirebaseStorage", "Upload failed: ${exception.message}")
                             // Handle the failure (e.g., show an error message)

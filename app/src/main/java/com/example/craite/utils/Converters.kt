@@ -41,5 +41,26 @@ class ProjectTypeConverters {
         return gson.fromJson(settingsString, EditingSettings::class.java)
     }
 
+    @TypeConverter
+    fun fromMapString(map: Map<String, String>?): String {
+        return map?.entries?.joinToString(",") { "${it.key}=${it.value}" } ?: ""
+    }
+
+    @TypeConverter
+    fun toMapString(value: String?): Map<String, String>? {
+        if (value == null) return null
+        val map = mutableMapOf<String, String>()
+        val entries = value.split(",")
+        for (entry in entries) {
+            val keyValue = entry.split("=")
+            if (keyValue.size == 2) {
+                map[keyValue[0]] = keyValue[1]
+            }
+        }
+        return map
+    }
+
+
+
 
 }
