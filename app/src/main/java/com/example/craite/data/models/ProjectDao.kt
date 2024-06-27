@@ -27,4 +27,10 @@ interface ProjectDao {
 
     @Query("SELECT * FROM Project ORDER BY id DESC LIMIT 1")
     suspend fun getLastInsertedProject(): Project
+
+    @Query("UPDATE Project SET geminiResponse = :geminiResponse WHERE id = :projectId")
+    suspend fun updateGeminiResponse(projectId: Int, geminiResponse: String)
+
+    @Query("UPDATE Project SET editingSettings = :editingSettings WHERE id = :projectId")
+    suspend fun updateEditingSettings(projectId: Int, editingSettings: String)
 }
