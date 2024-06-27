@@ -106,10 +106,6 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
-//    implementation("com.squareup.picasso:picasso:2.8.0")
-
-//    implementation("org.opencv:opencv-android:4.9.0")
-
     implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
 
     implementation("com.google.code.gson:gson:2.11.0")
@@ -138,7 +134,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-auth")
 
-//    implementation("com.google.cloud:google-cloud-aiplatform:2.18.0")
+    // kotlin serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
 
     implementation(libs.androidx.core.ktx)

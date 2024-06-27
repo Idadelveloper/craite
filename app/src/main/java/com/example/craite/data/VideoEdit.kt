@@ -1,5 +1,8 @@
 package com.example.craite.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class VideoEdit(
     val edit: String,
     val effects: List<Effect>,

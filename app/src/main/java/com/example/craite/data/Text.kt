@@ -1,5 +1,8 @@
 package com.example.craite.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Text(
     val color: String,
     val duration: Int,

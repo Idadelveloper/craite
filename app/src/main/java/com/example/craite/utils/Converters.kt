@@ -6,9 +6,12 @@ import android.net.Uri
 import android.util.Log
 import androidx.room.TypeConverter
 import com.example.craite.data.EditSettings
+import com.example.craite.data.GeminiResponse
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 
 class ProjectTypeConverters {
@@ -32,35 +35,41 @@ class ProjectTypeConverters {
     }
 
     @TypeConverter
-    fun fromEditingSettings(settings: EditSettings?): String {
-        return gson.toJson(settings)
-    }
-
-    @TypeConverter
-    fun toEditingSettings(settingsString: String?): EditSettings? {
-        return gson.fromJson(settingsString, EditSettings::class.java)
-    }
-
-    @TypeConverter
     fun fromMapString(map: Map<String, String>?): String {
-        return map?.entries?.joinToString(",") { "${it.key}=${it.value}" } ?: ""
+        return map?.entries?.joinToString(";") { "${it.key}={it.value}" } ?: ""
     }
 
     @TypeConverter
     fun toMapString(value: String?): Map<String, String>? {
         if (value == null) return null
         val map = mutableMapOf<String, String>()
-        val entries = value.split(",")
-        for (entry in entries) {
-            val keyValue = entry.split("=")
-            if (keyValue.size == 2) {
-                map[keyValue[0]] = keyValue[1]
+        value.split(";").forEach { entry ->
+            val parts = entry.split("=")
+            if (parts.size == 2) {
+                map[parts[0]] = parts[1]
             }
         }
         return map
     }
 
+    @TypeConverter
+    fun fromEditSettings(settings: EditSettings?): String {
+        return Json.encodeToString(settings)
+    }
 
+    @TypeConverter
+    fun toEditSettings(settingsString: String?): EditSettings? {
+        return settingsString?.let { Json.decodeFromString(it) }
+    }
 
+    @TypeConverter
+    fun fromGeminiResponse(response: GeminiResponse?): String {
+        return Json.encodeToString(response)
+    }
+
+    @TypeConverter
+    fun toGeminiResponse(responseString: String?): GeminiResponse? {
+        return responseString?.let { Json.decodeFromString(it) }
+    }
 
 }
