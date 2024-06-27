@@ -5,7 +5,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.room.TypeConverter
-import com.example.craite.data.EditingSettings
+import com.example.craite.data.EditSettings
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
@@ -32,13 +32,13 @@ class ProjectTypeConverters {
     }
 
     @TypeConverter
-    fun fromEditingSettings(settings: EditingSettings?): String {
+    fun fromEditingSettings(settings: EditSettings?): String {
         return gson.toJson(settings)
     }
 
     @TypeConverter
-    fun toEditingSettings(settingsString: String?): EditingSettings? {
-        return gson.fromJson(settingsString, EditingSettings::class.java)
+    fun toEditingSettings(settingsString: String?): EditSettings? {
+        return gson.fromJson(settingsString, EditSettings::class.java)
     }
 
     @TypeConverter

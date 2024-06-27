@@ -17,9 +17,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
-import com.example.craite.data.ProjectDatabase
+import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.theme.CraiteTheme
-import com.example.craite.utils.CommonUtils.Companion.stringToBundle
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth

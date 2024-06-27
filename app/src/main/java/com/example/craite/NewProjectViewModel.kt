@@ -1,49 +1,20 @@
 package com.example.craite
 
-import android.content.ContentResolver
-import android.content.ContentUris
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Bundle
-import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
-import androidx.annotation.OptIn
-import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.transformer.Composition
-import androidx.media3.transformer.EditedMediaItem
-import androidx.media3.transformer.Transformer
 import androidx.navigation.NavController
-import com.example.craite.data.Project
-import com.example.craite.data.ProjectDao
-import com.google.android.gms.tasks.TaskCompletionSource
+import com.example.craite.data.models.Project
+import com.example.craite.data.models.ProjectDao
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.launch
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.ktx.firestore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
-import androidx.media3.common.util.Util
-import androidx.media3.transformer.EditedMediaItemSequence
-import androidx.media3.transformer.ExportResult
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import androidx.navigation.navOptions
-import com.example.craite.utils.CommonUtils.Companion.bundleToString
-import com.google.common.collect.ImmutableList
-import com.google.errorprone.annotations.CanIgnoreReturnValue
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.tasks.await
-import okhttp3.internal.toImmutableList
 
 
 class NewProjectViewModel: ViewModel() {

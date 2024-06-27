@@ -1,11 +1,10 @@
-package com.example.craite.data
+package com.example.craite.data.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import android.net.Uri
-import androidx.databinding.adapters.Converters
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
+import com.example.craite.data.EditSettings
+import com.example.craite.data.GeminiResponse
 
 
 @Entity
@@ -14,6 +13,6 @@ data class Project(
     val name: String,
     val media: List<Uri>,
     var mediaNames: Map<String, String> = emptyMap(),
-    val editingSettings: EditingSettings? = null,
-    val geminiResponse: String? = null
+    val editingSettings: EditSettings? = null,
+    val geminiResponse: GeminiResponse? = null
 )

@@ -1,4 +1,4 @@
-package com.example.craite.data
+package com.example.craite.data.models
 
 import androidx.room.Dao
 import androidx.room.Delete

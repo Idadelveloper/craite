@@ -20,9 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.craite.data.Project
-import com.example.craite.data.ProjectDatabase
+import com.example.craite.data.models.Project
+import com.example.craite.data.models.ProjectDatabase
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.Flow
 
