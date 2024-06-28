@@ -1,11 +1,14 @@
 package com.example.craite
 
+import android.Manifest
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.*
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +33,7 @@ import com.example.craite.data.models.ProjectDatabase
 import com.google.firebase.auth.FirebaseUser
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun NewProject(
     navController: NavController,
@@ -64,6 +68,19 @@ fun NewProject(
         }
     }
 
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permission granted, launch the media picker
+            pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.VideoOnly))
+        } else {
+            // Permission denied, handle accordingly (e.g., show a message)
+            Log.d("Permission", "READ_MEDIA_VIDEO permission denied")
+            // You might want to display a Snackbar or a Dialog here
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -88,7 +105,8 @@ fun NewProject(
                 ) {
                     Button(
                         onClick = {
-                            pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.VideoOnly))
+                            // Request permission before launching picker
+                            requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
                         }
                     ) {
                         Text("Add Videos")
