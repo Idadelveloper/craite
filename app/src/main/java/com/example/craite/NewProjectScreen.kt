@@ -16,6 +16,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +43,9 @@ fun NewProject(
         mutableStateOf(emptyList<Uri>())
     }
     val prompt = "What do you think is going on in these videos"
+
+    val projectCreationInitiated by newProjectViewModel.projectCreationInitiated.collectAsState()
+
     val pickMultipleMedia = rememberLauncherForActivityResult(PickMultipleVisualMedia(10)) {uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
@@ -48,6 +53,14 @@ fun NewProject(
             Log.d("PhotoPicker", "Selected media: $selectedMedia")
         } else {
             Log.d("PhotoPicker", "No media selected")
+        }
+    }
+
+    // Trigger navigation when project creation is initiated
+    LaunchedEffect(key1 = projectCreationInitiated) {
+        if (projectCreationInitiated) {
+            val projectId = projectDatabase.projectDao().getLastInsertedProject().id
+            navController.navigate("video_edit_screen/$projectId")
         }
     }
 
@@ -82,9 +95,16 @@ fun NewProject(
                     }
                     Button(
                         onClick = {
-                            Log.d("PhotoPicker", "Creating project")
                             if (user != null) {
-                                newProjectViewModel.createProject(projectDatabase.projectDao(), projectName, selectedMedia, context, navController, user, prompt)
+                                newProjectViewModel.createProject(
+                                    projectDatabase.projectDao(),
+                                    projectName,
+                                    selectedMedia,
+                                    context,
+                                    navController, // unnecessary but whatever
+                                    user,
+                                    prompt
+                                )
                             }
                         }
                     ) {

@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -29,13 +30,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
+import com.example.craite.data.EditSettings
+import com.example.craite.data.MediaEffect
+import com.example.craite.data.TextOverlay
+import com.example.craite.data.VideoEdit
+import com.example.craite.data.models.ProjectDatabase
+import com.example.craite.utils.ProjectTypeConverters
 import com.google.firebase.auth.FirebaseUser
 import java.io.InputStream
-import java.util.ArrayList
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,16 +51,24 @@ fun VideoEditScreen(
     mediaUris: List<Uri>,
     navController: NavController,
     user: FirebaseUser?,
-//    timestamps: ArrayList<Int>
+    projectDatabase: ProjectDatabase
 ) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     var currentMediaIndex by remember { mutableIntStateOf(0) }
     var mediaItemMap = mediaUris.indices.associateWith {MediaItem.fromUri(Uri.parse(mediaUris[it].toString()))}
 
+    val fakeEditSettings = generateFakeEditSettings()
+    val viewModel = remember {
+        VideoEditViewModel(fakeEditSettings)
+    }
+    val uiState by viewModel.uiState.collectAsState()
+
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
         topBar = {
             TopAppBar(title = { Text("Craite - Edit Media") })
         }
@@ -144,16 +159,36 @@ fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? {
     }
 }
 
+fun generateFakeEditSettings(): EditSettings {
+    val videoEdits = listOf(
+        VideoEdit(
+            edit = "trim",
+            effects = listOf(
+                MediaEffect(adjustment = 0.5, name = "brightness"),
+                MediaEffect(adjustment = -0.2, name = "contrast")
+            ),
+            end_time = 15.0,
+            id = 1,
+            start_time = 5.0,
+            text = listOf(
+                TextOverlay(color = "#FFFFFF", duration = 3, font_size = 24, label = "Hello", position = "top-left")
+            ),
+            transition = "fade",
+            video_name = "video1.mp4"
+        ),
+        VideoEdit(
+            edit = "crop",
+            effects = listOf(
+                MediaEffect(adjustment = 1.2, name = "saturation")
+            ),
+            end_time = 25.0,
+            id = 2,
+            start_time = 10.0,
+            text = emptyList(),
+            transition = "slide",
+            video_name = "video2.mp4"
+        )
+    )
 
-//@Preview(showBackground = true)
-//@Composable
-//fun VideoEditScreenPreview() {
-//    val context = LocalContext.current
-//    val sampleVideoUri = Uri.parse("content://media/picker/0/com.android.providers.media.photopicker/media/1000008360") // Replace with your sample video resource
-//    val mediaUris = listOf(sampleVideoUri)
-////    "content://media/picker/0/com.android.providers.media.photopicker/media/1000008368",
-////    "content://media/picker/0/com.android.providers.media.photopicker/media/1000008342",
-////    "content://media/picker/0/com.android.providers.media.photopicker/media/1000008332"
-//
-//    VideoEditScreen(mediaUris)
-//}
+    return EditSettings(video_edits = videoEdits)
+}

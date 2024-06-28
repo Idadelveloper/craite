@@ -91,7 +91,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
             val mediaUris = project?.media
             if (mediaUris != null) {
-                VideoEditScreen(mediaUris, navController, user)
+                VideoEditScreen(mediaUris, navController, user, db)
             }
         }
     }

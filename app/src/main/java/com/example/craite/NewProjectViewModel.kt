@@ -15,12 +15,18 @@ import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.launch
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.ktx.firestore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 
 class NewProjectViewModel: ViewModel() {
     private val storageRef = Firebase.storage.reference
     private val firestoreDb = Firebase.firestore
     private var videoNames  = mutableMapOf<String, String>() // video name: uri string
+
+    private val _projectCreationInitiated = MutableStateFlow(false)
+    val projectCreationInitiated: StateFlow<Boolean> = _projectCreationInitiated.asStateFlow()
     fun createProject(
         projectDao: ProjectDao,
         projectName: String,
@@ -91,7 +97,7 @@ class NewProjectViewModel: ViewModel() {
                                 Toast.makeText(context, "Error saving prompt data", Toast.LENGTH_SHORT).show()
                             }
 
-                        navController.navigate("video_edit_screen/$projectId")
+                        _projectCreationInitiated.value = true
                     } else {
                         Toast.makeText(context, "Error uploading videos", Toast.LENGTH_SHORT).show()
                         // Handle the failure
