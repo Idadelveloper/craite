@@ -119,7 +119,6 @@ fun NewProject(
                                     projectName,
                                     selectedMedia,
                                     context,
-                                    navController, // unnecessary but whatever
                                     user,
                                     prompt
                                 )

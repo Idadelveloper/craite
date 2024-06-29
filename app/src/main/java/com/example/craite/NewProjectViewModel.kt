@@ -2,8 +2,11 @@ package com.example.craite
 
 import android.content.Context
 import android.net.Uri
+import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.ui.graphics.vector.path
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
@@ -18,42 +21,89 @@ import com.google.firebase.firestore.ktx.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 
 class NewProjectViewModel: ViewModel() {
     private val storageRef = Firebase.storage.reference
     private val firestoreDb = Firebase.firestore
-    private var videoNames  = mutableMapOf<String, String>() // video name: uri string
+    private var videoNames  = mutableMapOf<String, String>()
 
     private val _projectCreationInitiated = MutableStateFlow(false)
     val projectCreationInitiated: StateFlow<Boolean> = _projectCreationInitiated.asStateFlow()
+
+    // Copy video to internal storage and return file path
+    private fun copyVideoToInternalStorage(context: Context, contentUri: Uri): String? {
+        val fileName = getFileName(context, contentUri) ?: return null
+        val file = File(context.filesDir, fileName)
+
+        try {
+            val inputStream = context.contentResolver.openInputStream(contentUri)
+            val outputStream = FileOutputStream(file)
+
+            inputStream?.use { input ->
+                outputStream.use { output ->
+                    val buffer = ByteArray(4 * 1024)
+                    var read: Int
+                    while (input.read(buffer).also { read = it } != -1) {
+                        output.write(buffer, 0, read)
+                    }
+                    output.flush()
+                }
+            }
+
+            return file.absolutePath
+        } catch (e: IOException) {
+            // Handle exceptions
+            return null
+        }
+    }
+
+    // Helper function to get file name from content URI
+    private fun getFileName(context: Context, uri: Uri): String? {
+        if (uri.scheme == "content") {
+            val cursor = context.contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    return it.getString(nameIndex)
+                }
+            }
+        }
+        return uri.path?.lastIndexOf('/')?.plus(1)?.let { uri.path?.substring(it) }
+    }
+
     fun createProject(
         projectDao: ProjectDao,
         projectName: String,
         uris: List<Uri>,
         context: Context,
-        navController: NavController,
         user: FirebaseUser,
         prompt: String
     ) {
-        val project = Project(name = projectName, media = uris)
-        Log.d("media uri: ", "here are the project $uris")
         viewModelScope.launch {
             try {
+                // Copy videos to internal storage and get file paths
+                val filePaths = uris.mapNotNull { copyVideoToInternalStorage(context, it) }
+
+                // Create project with file paths
+                val project = Project(name = projectName, media = filePaths)
                 projectDao.insert(project)
                 Toast.makeText(context, "Successfully created project", Toast.LENGTH_SHORT).show()
 
-                // upload videos to cloud storage
+                // Upload videos to cloud storage (using file paths)
                 val projectId = projectDao.getLastInsertedProject().id
                 val userFolderRef = storageRef.child("users/${user.uid}/projects/$projectId/videos")
 
-
-                val uploadCompletionSource = Tasks.whenAllComplete(uris.mapIndexed { index, uri ->
+                val uploadCompletionSource = Tasks.whenAllComplete(filePaths.mapIndexed { index, filePath ->
                     val fileName = "video_${index}_${System.currentTimeMillis()}.mp4"
                     val fileRef = userFolderRef.child(fileName)
-                    fileRef.putFile(uri)
+                    val fileUri = Uri.fromFile(File(filePath))
+                    fileRef.putFile(fileUri)
                         .addOnSuccessListener {
-                            videoNames[fileName] = uri.toString()
+                            videoNames[fileName] = filePath
                             Log.d("FirebaseStorage", "File uploaded: ${fileRef.path}")
                             Toast.makeText(context, "File uploaded: ${fileRef.path}", Toast.LENGTH_SHORT).show()
 

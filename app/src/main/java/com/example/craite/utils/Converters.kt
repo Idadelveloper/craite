@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import androidx.compose.ui.input.key.type
 import androidx.room.TypeConverter
 import com.example.craite.data.EditSettings
 import com.example.craite.data.GeminiResponse
@@ -70,6 +71,17 @@ class ProjectTypeConverters {
     @TypeConverter
     fun toGeminiResponse(responseString: String?): GeminiResponse? {
         return responseString?.let { Json.decodeFromString(it) }
+    }
+
+    @TypeConverter
+    fun fromStringList(strings: List<String>): String {
+        return gson.toJson(strings)
+    }
+
+    @TypeConverter
+    fun toStringList(string: String): List<String> {
+        val listType = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson(string, listType)
     }
 
 }

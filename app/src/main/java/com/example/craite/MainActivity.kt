@@ -1,12 +1,14 @@
 package com.example.craite
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun CraiteApp(navController: NavHostController, context: Context, currentUser: FirebaseUser?) {
     val db = Room.databaseBuilder(
@@ -83,7 +86,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             route = "video_edit_screen/{projectId}",
             arguments = listOf(navArgument("projectId") { type = NavType.IntType })
         ) { backStackEntry ->
-            val projectId = backStackEntry.arguments?.getInt("projectId") ?: 0
+            val projectId = backStackEntry.arguments?.getInt("projectId") ?: -1
 
 //            val bundle = backStackEntry.arguments?.getString("bundle")?.let { stringToBundle(it) }
 //            val timestamps = bundle?.getIntegerArrayList("timestamps") ?: arrayListOf()

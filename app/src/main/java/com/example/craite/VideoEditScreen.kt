@@ -1,9 +1,14 @@
 package com.example.craite
 
+import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,13 +48,14 @@ import com.example.craite.data.VideoEdit
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.utils.ProjectTypeConverters
 import com.google.firebase.auth.FirebaseUser
+import java.io.File
 import java.io.InputStream
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoEditScreen(
-    mediaUris: List<Uri>,
+    mediaFilePaths: List<String>,
     navController: NavController,
     user: FirebaseUser?,
     projectDatabase: ProjectDatabase
@@ -56,7 +63,10 @@ fun VideoEditScreen(
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     var currentMediaIndex by remember { mutableIntStateOf(0) }
-    var mediaItemMap = mediaUris.indices.associateWith {MediaItem.fromUri(Uri.parse(mediaUris[it].toString()))}
+
+    // Convert file paths to URIs
+    val mediaUris = mediaFilePaths.map { Uri.fromFile(File(it)) }
+    val mediaItemMap = mediaUris.indices.associateWith { MediaItem.fromUri(mediaUris[it]) }
 
     val fakeEditSettings = generateFakeEditSettings()
     val viewModel = remember {
@@ -64,6 +74,30 @@ fun VideoEditScreen(
     }
     val uiState by viewModel.uiState.collectAsState()
 
+    // Launcher for requesting permission
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permission granted, you can now safely access the mediaUris
+            // and initialize the ExoPlayer with the first video if available
+            mediaItemMap[0]?.let {
+                exoPlayer.setMediaItem(it)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+            }
+        } else {
+            // Permission denied, handle accordingly (e.g., show a message)
+            Log.d("Permission", "READ_MEDIA_VIDEO permission denied")
+            // You might want to display a Snackbar or a Dialog here,
+            // or even navigate back to the previous screen
+        }
+    }
+
+    // Request permission when the screen is displayed
+    LaunchedEffect(Unit) {
+        requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
+    }
 
     Scaffold(
         modifier = Modifier
@@ -90,11 +124,8 @@ fun VideoEditScreen(
                     AndroidView(
                         factory = { context ->
                             PlayerView(context).apply {
-                                player = exoPlayer.apply {
-                                    mediaItemMap[currentMediaIndex]?.let { setMediaItem(it) }
-                                    prepare()
-                                    playWhenReady = true // Autoplay video
-                                }
+                                player = exoPlayer
+                                // No need to setMediaItem here, it's done after permission is granted
                             }
                         },
                         modifier = Modifier.fillMaxSize()
@@ -109,13 +140,14 @@ fun VideoEditScreen(
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(mediaUris) { uri ->
-                    MediaItemThumbnail(uri) { index ->
+                items(mediaItemMap.entries.toList()) { entry ->
+                    val index = entry.key
+                    val mediaItem = entry.value
+                    MediaItemThumbnail(mediaUris[index]) {
                         currentMediaIndex = index
-                        if (uri.toString().endsWith(".mp4")) {
-                            exoPlayer.setMediaItem(MediaItem.fromUri(uri))
-                            exoPlayer.prepare()
-                            exoPlayer.playWhenReady = true
+                        exoPlayer.setMediaItem(mediaItem) // Use MediaItem directly
+                        exoPlayer.prepare()
+                        exoPlayer.playWhenReady = true
                         }
                     }
                 }
@@ -126,7 +158,6 @@ fun VideoEditScreen(
 
             // Editing Controls (Add your desired controls here)
             // ... (Same as before, but now operate on the selected media item)
-        }
     }
 
     // Release ExoPlayer when the screen is disposed
