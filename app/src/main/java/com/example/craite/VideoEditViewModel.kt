@@ -1,26 +1,26 @@
 package com.example.craite
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.craite.data.EditSettings
-import com.example.craite.data.GeminiRequest
-import com.example.craite.data.GeminiResult
 import com.example.craite.data.MediaEffect
-import com.example.craite.data.models.ProjectDao
-import com.example.craite.utils.ProjectTypeConverters
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
 
 class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
     private val _uiState = MutableStateFlow(initialEditSettings)
     val uiState: StateFlow<EditSettings> = _uiState.asStateFlow()
 
+    private val _currentMediaItemIndex = MutableStateFlow(0) // Track selected media item index
+    val currentMediaItemIndex: StateFlow<Int> = _currentMediaItemIndex.asStateFlow()
+
     private fun updateEditSettings(newEditSettings: EditSettings) {
         _uiState.value = newEditSettings
+    }
+
+    fun setCurrentMediaItemIndex(index: Any) {
+        _currentMediaItemIndex.value = index as Int
     }
 
     // Example editing action functions (add more as needed)

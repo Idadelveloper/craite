@@ -125,8 +125,6 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.51.1")
     ksp("com.google.dagger:hilt-compiler:2.51.1")
 
-    implementation("io.coil-kt:coil:2.6.0")
-
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
@@ -137,6 +135,9 @@ dependencies {
     // kotlin serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // coil for images
+    implementation("io.coil-kt:coil:2.6.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
