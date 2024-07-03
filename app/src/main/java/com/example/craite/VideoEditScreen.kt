@@ -1,9 +1,18 @@
 package com.example.craite
 
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -25,12 +35,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -42,8 +56,13 @@ import com.example.craite.data.TextOverlay
 import com.example.craite.data.VideoEdit
 import com.example.craite.data.models.ProjectDatabase
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.InputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,16 +75,12 @@ fun VideoEditScreen(
 ) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
-
-    // Use ViewModel to manage selected media item index
     val viewModel = remember { VideoEditViewModel(generateFakeEditSettings()) }
     val currentMediaIndex by viewModel.currentMediaItemIndex.collectAsState()
-
-    // Convert file paths to URIs
     val mediaUris = mediaFilePaths.map { Uri.fromFile(File(it)) }
     val mediaItemMap = mediaUris.indices.associateWith { MediaItem.fromUri(mediaUris[it]) }
-
     val uiState by viewModel.uiState.collectAsState()
+    val showProgressDialog by viewModel.showProgressDialog.collectAsState()
 
 
     Scaffold(
@@ -115,17 +130,78 @@ fun VideoEditScreen(
                     val mediaItem = entry.value
                     MediaItemThumbnail(mediaUris[index], index) { clickedIndex ->
                         viewModel.setCurrentMediaItemIndex(clickedIndex) // Update ViewModel state
-                        }
                     }
                 }
             }
             Button(onClick = {
+                viewModel.showProgressDialog()
+                Toast.makeText(context, "Downloading video", Toast.LENGTH_SHORT).show()
+
+                viewModel.launch {
+                    val videoEditor = VideoEditor(context)
+
+                    // Determine output file path
+                    val outputFilePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // For MediaStore, we'll generate the URI later
+                        "" // Placeholder for now
+                    } else {
+                        // Use legacy external storage
+                        val externalStorageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+                        File(externalStorageDir, "merged_video_${System.currentTimeMillis()}.mp4").absolutePath
+                    }
+
+                    Log.d("Before getting merged", "lets see")
+
+                    // Trim and merge videos, get the merged video path
+                    val mergedVideoPath = videoEditor.trimAndMergeVideos(mediaFilePaths, outputFilePath)
+                    Log.d("Final path", "$mergedVideoPath")
+
+                    mergedVideoPath?.let {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            // Use MediaStore for Android 10 and above
+                            val contentValues = ContentValues().apply {
+                                put(MediaStore.MediaColumns.DISPLAY_NAME, "merged_video_${System.currentTimeMillis()}.mp4")
+                                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
+                            }
+
+                            val resolver = context.contentResolver
+                            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+                            uri?.let { videoUri ->
+                                resolver.openOutputStream(videoUri)?.use { outputStream ->
+                                    // Read the merged video file and write to OutputStream
+                                    File(mergedVideoPath).inputStream().use { inputStream ->
+                                        inputStream.copyTo(outputStream)
+                                    }
+                                }
+
+                                println("Video saved to MediaStore: $videoUri")
+                                // Handle success (e.g., navigate, show message)
+                            } ?: run {
+                                // Handle error if URI is null
+                            }
+                        } else {
+                            // For older Android versions, the file is already saved at 'mergedVideoPath'
+                            // You might want to notify the user or perform other actions
+                            println("Video saved to: $mergedVideoPath")
+                        }
+                    } ?: run {
+                        // Handle the case where trimming or merging failed
+                        // (e.g., show an error message to the user)
+                        println("Trimming or merging failed.")
+                    }
+
+                    viewModel.hideProgressDialog()
+                }
+            }) {
+                Text("Download Final Video")
+            }
+        }
 
 
-            }) { Text("Download final Video") }
-
-            // Editing Controls (Add your desired controls here)
-            // ... (Same as before, but now operate on the selected media item)
+        // Editing Controls (Add your desired controls here)
+        // ... (Same as before, but now operate on the selected media item)
     }
 
     // Release ExoPlayer when the screen is disposed
@@ -133,6 +209,15 @@ fun VideoEditScreen(
         onDispose {
             exoPlayer.release()
         }
+    }
+
+    if (showProgressDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Do nothing, keep showing */ },
+            title = { Text("Processing Video") },
+            text = { Text("Please wait...") },
+            confirmButton = {} // No confirm button, just a progress indicator
+        )
     }
 }
 
@@ -147,7 +232,7 @@ fun MediaItemThumbnail(uri: Uri, index: Int, onClick: (Int) -> Unit) {
 //            .clickable { onClick(index) }, // Call onClick with index when clicked
 //        contentScale = ContentScale.Crop
 //    )
-    Button(onClick={}) { }
+    Button(onClick = {}) { }
 }
 
 
@@ -175,7 +260,13 @@ fun generateFakeEditSettings(): EditSettings {
             id = 1,
             start_time = 5.0,
             text = listOf(
-                TextOverlay(color = "#FFFFFF", duration = 3, font_size = 24, label = "Hello", position = "top-left")
+                TextOverlay(
+                    color = "#FFFFFF",
+                    duration = 3,
+                    font_size = 24,
+                    label = "Hello",
+                    position = "top-left"
+                )
             ),
             transition = "fade",
             video_name = "video1.mp4"

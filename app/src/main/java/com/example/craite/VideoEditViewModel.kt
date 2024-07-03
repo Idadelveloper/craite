@@ -1,11 +1,14 @@
 package com.example.craite
 
+import androidx.activity.result.launch
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.craite.data.EditSettings
 import com.example.craite.data.MediaEffect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
@@ -15,12 +18,29 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _currentMediaItemIndex = MutableStateFlow(0) // Track selected media item index
     val currentMediaItemIndex: StateFlow<Int> = _currentMediaItemIndex.asStateFlow()
 
+    private val _showProgressDialog = MutableStateFlow(false)
+    val showProgressDialog: StateFlow<Boolean> = _showProgressDialog.asStateFlow()
+
+    fun showProgressDialog() {
+        _showProgressDialog.value = true
+    }
+
+    fun hideProgressDialog() {
+        _showProgressDialog.value = false
+    }
+
     private fun updateEditSettings(newEditSettings: EditSettings) {
         _uiState.value = newEditSettings
     }
 
     fun setCurrentMediaItemIndex(index: Any) {
         _currentMediaItemIndex.value = index as Int
+    }
+
+    fun launch(block: suspend () -> Unit) {
+        viewModelScope.launch {
+            block()
+        }
     }
 
     // Example editing action functions (add more as needed)

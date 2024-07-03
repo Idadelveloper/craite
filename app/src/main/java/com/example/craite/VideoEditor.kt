@@ -2,6 +2,8 @@ package com.example.craite
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
@@ -23,8 +25,9 @@ import java.lang.Exception
 
 class VideoEditor(private val context: Context) {
     @OptIn(UnstableApi::class)
-    fun trimAndMergeVideos(videoFilePaths: List<String>, outputFilePath: String) {
+    fun trimAndMergeVideos(videoFilePaths: List<String>, outputFilePath: String): String? {
         val editedMediaItems = mutableListOf<EditedMediaItem>()
+        Toast.makeText(context, "Trimming videos", Toast.LENGTH_SHORT).show()
 
         // Trim each video and add to the list
         for (i in videoFilePaths.indices) {
@@ -40,14 +43,18 @@ class VideoEditor(private val context: Context) {
             if (editedItem != null) {
                 editedMediaItems.add(editedItem)
             } else {
-                // Handle the case where trimming failed for this video
-                println("Trimming failed for video: ${inputUri}") // Log the error
-                // You might also want to notify the user or take other actions
+                // Handle trimming failure (log, notify user, etc.)
+                println("Trimming failed for video: ${inputUri}")
+                return null // Indicate failure by returning null
             }
         }
 
-        // Merge trimmed videos using the collected EditedMediaItems
-        mergeVideos(editedMediaItems, outputFilePath)
+        // Merge trimmed videos and return the output path if successful
+        return if (mergeVideos(editedMediaItems, outputFilePath)) {
+            outputFilePath
+        } else {
+            null // Indicate merging failure
+        }
     }
 
     @OptIn(UnstableApi::class)
@@ -90,6 +97,7 @@ class VideoEditor(private val context: Context) {
 
             // Start trimming using transformer.start()
             transformer.start(editedMediaItem, outputPath)
+            Log.d("VideoEditor", "Trimmed video: ${outputPath}")
             editedMediaItem // Return the EditedMediaItem if successful
         } catch (e: ExportException) {
             // Handle exceptions during trimming
@@ -101,7 +109,7 @@ class VideoEditor(private val context: Context) {
     }
 
     @OptIn(UnstableApi::class)
-    private fun mergeVideos(editedMediaItems: List<EditedMediaItem>, outputFilePath: String) {
+    private fun mergeVideos(editedMediaItems: List<EditedMediaItem>, outputFilePath: String): Boolean {
         val transformer = Transformer.Builder(context).build()
 
         try {
@@ -112,10 +120,11 @@ class VideoEditor(private val context: Context) {
 
             // Start merging using transformer.start()
             transformer.start(composition, outputFilePath)
-
+            return true // Indicate success
         } catch (e: ExportException) {
             // Handle exceptions during merging
             e.printStackTrace()
+            return false // Indicate failure
         } finally {
             transformer.cancel()
         }
