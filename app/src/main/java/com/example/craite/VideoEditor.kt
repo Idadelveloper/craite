@@ -2,6 +2,7 @@ package com.example.craite
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.OptIn
@@ -24,8 +25,9 @@ import java.io.File
 import java.lang.Exception
 
 class VideoEditor(private val context: Context) {
+
     @OptIn(UnstableApi::class)
-    fun trimAndMergeVideos(videoFilePaths: List<String>, outputFilePath: String): String? {
+    fun trimAndMergeToTempFile(videoFilePaths: List<String>): String? {
         val editedMediaItems = mutableListOf<EditedMediaItem>()
         Toast.makeText(context, "Trimming videos", Toast.LENGTH_SHORT).show()
 
@@ -49,9 +51,13 @@ class VideoEditor(private val context: Context) {
             }
         }
 
-        // Merge trimmed videos and return the output path if successful
-        return if (mergeVideos(editedMediaItems, outputFilePath)) {
-            outputFilePath
+        // Generate a temporary file path
+        val tempFile = File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
+        val tempFilePath = tempFile.absolutePath
+
+        // Merge to the temporary file
+        return if (mergeVideos(editedMediaItems, tempFilePath)) {
+            tempFilePath // Return the temporary file path on success
         } else {
             null // Indicate merging failure
         }
@@ -69,7 +75,7 @@ class VideoEditor(private val context: Context) {
             val clippedVideo = MediaItem.Builder()
                 .setUri(inputUri)
                 .setClippingConfiguration(
-                    MediaItem.ClippingConfiguration.Builder()
+                    ClippingConfiguration.Builder()
                         .setStartPositionMs(startTimeUs / 1000) // Use provided startTimeUs
                         .setEndPositionMs(endTimeUs / 1000)   // Use provided endTimeUs
                         .build()
@@ -115,11 +121,13 @@ class VideoEditor(private val context: Context) {
         try {
             // Build Composition for merging
             val videoSequence = EditedMediaItemSequence(editedMediaItems)
+            Log.d("VideoEditor", "Edited media items: $editedMediaItems")
             val composition = Composition.Builder(videoSequence)
                 .build()
 
             // Start merging using transformer.start()
             transformer.start(composition, outputFilePath)
+            Log.d("VideoEditor", "Merged video: $outputFilePath")
             return true // Indicate success
         } catch (e: ExportException) {
             // Handle exceptions during merging
@@ -128,6 +136,12 @@ class VideoEditor(private val context: Context) {
         } finally {
             transformer.cancel()
         }
+    }
+
+    // Helper function to generate output file path (for legacy storage)
+    fun generateOutputFilePath(): String {
+        val externalStorageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+        return File(externalStorageDir, "merged_video_${System.currentTimeMillis()}.mp4").absolutePath
     }
 }
 

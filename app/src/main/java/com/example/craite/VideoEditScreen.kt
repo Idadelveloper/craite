@@ -82,7 +82,6 @@ fun VideoEditScreen(
     val uiState by viewModel.uiState.collectAsState()
     val showProgressDialog by viewModel.showProgressDialog.collectAsState()
 
-
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -106,7 +105,6 @@ fun VideoEditScreen(
                     factory = { context ->
                         PlayerView(context).apply {
                             player = exoPlayer
-                            // Set media item based on ViewModel state
                             mediaItemMap[currentMediaIndex]?.let {
                                 exoPlayer.setMediaItem(it)
                                 exoPlayer.prepare()
@@ -127,69 +125,60 @@ fun VideoEditScreen(
             ) {
                 items(mediaItemMap.entries.toList()) { entry ->
                     val index = entry.key
-                    val mediaItem = entry.value
                     MediaItemThumbnail(mediaUris[index], index) { clickedIndex ->
-                        viewModel.setCurrentMediaItemIndex(clickedIndex) // Update ViewModel state
+                        viewModel.setCurrentMediaItemIndex(clickedIndex)
                     }
                 }
             }
+
             Button(onClick = {
+                Log.d("Download button", "starting download")
                 viewModel.showProgressDialog()
-                Toast.makeText(context, "Downloading video", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
 
                 viewModel.launch {
                     val videoEditor = VideoEditor(context)
 
-                    // Determine output file path
-                    val outputFilePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        // For MediaStore, we'll generate the URI later
-                        "" // Placeholder for now
-                    } else {
-                        // Use legacy external storage
-                        val externalStorageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-                        File(externalStorageDir, "merged_video_${System.currentTimeMillis()}.mp4").absolutePath
-                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // MediaStore
+                        val contentValues = ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, "merged_video_${System.currentTimeMillis()}.mp4")
+                            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
+                        }
 
-                    Log.d("Before getting merged", "lets see")
+                        val resolver = context.contentResolver
+                        val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
 
-                    // Trim and merge videos, get the merged video path
-                    val mergedVideoPath = videoEditor.trimAndMergeVideos(mediaFilePaths, outputFilePath)
-                    Log.d("Final path", "$mergedVideoPath")
-
-                    mergedVideoPath?.let {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            // Use MediaStore for Android 10 and above
-                            val contentValues = ContentValues().apply {
-                                put(MediaStore.MediaColumns.DISPLAY_NAME, "merged_video_${System.currentTimeMillis()}.mp4")
-                                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-                                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
-                            }
-
-                            val resolver = context.contentResolver
-                            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-                            uri?.let { videoUri ->
-                                resolver.openOutputStream(videoUri)?.use { outputStream ->
-                                    // Read the merged video file and write to OutputStream
-                                    File(mergedVideoPath).inputStream().use { inputStream ->
+                        uri?.let { videoUri ->
+                            resolver.openOutputStream(videoUri)?.use { outputStream ->
+                                val tempFilePath = videoEditor.trimAndMergeToTempFile(mediaFilePaths)
+                                tempFilePath?.let {
+                                    File(it).inputStream().use { inputStream ->
                                         inputStream.copyTo(outputStream)
                                     }
+                                    File(it).delete() // Delete temporary file
+                                    println("Video saved to MediaStore: $videoUri")
+                                } ?: run {
+                                    // Handle merging failure
+                                    println("Trimming or merging failed.")
                                 }
-
-                                println("Video saved to MediaStore: $videoUri")
-                                // Handle success (e.g., navigate, show message)
-                            } ?: run {
-                                // Handle error if URI is null
                             }
-                        } else {
-                            // For older Android versions, the file is already saved at 'mergedVideoPath'
-                            // You might want to notify the user or perform other actions
-                            println("Video saved to: $mergedVideoPath")
+                        } ?: run {
+                            // Handle error if URI is null
+                            println("Error saving to MediaStore: URI is null")
                         }
-                    } ?: run {
-                        // Handle the case where trimming or merging failed
-                        // (e.g., show an error message to the user)
-                        println("Trimming or merging failed.")
+
+                    } else {
+                        // Legacy Storage
+                        val outputFilePath = videoEditor.generateOutputFilePath()
+                        val mergedVideoPath = videoEditor.trimAndMergeToTempFile(mediaFilePaths)
+                        mergedVideoPath?.let {
+                            println("Video saved to: $mergedVideoPath")
+                        } ?: run {
+                            // Handle the case where trimming or merging failed
+                            println("Trimming or merging failed.")
+                        }
                     }
 
                     viewModel.hideProgressDialog()
@@ -198,10 +187,6 @@ fun VideoEditScreen(
                 Text("Download Final Video")
             }
         }
-
-
-        // Editing Controls (Add your desired controls here)
-        // ... (Same as before, but now operate on the selected media item)
     }
 
     // Release ExoPlayer when the screen is disposed
@@ -213,10 +198,10 @@ fun VideoEditScreen(
 
     if (showProgressDialog) {
         AlertDialog(
-            onDismissRequest = { /* Do nothing, keep showing */ },
+            onDismissRequest = { },
             title = { Text("Processing Video") },
             text = { Text("Please wait...") },
-            confirmButton = {} // No confirm button, just a progress indicator
+            confirmButton = { }
         )
     }
 }
