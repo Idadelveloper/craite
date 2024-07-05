@@ -21,35 +21,46 @@ import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.TransformationResult
 import androidx.media3.transformer.Transformer
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.io.File
 import java.lang.Exception
 
 class VideoEditor(private val context: Context) {
 
     @OptIn(UnstableApi::class)
-    fun trimAndMergeToTempFile(videoFilePaths: List<String>): String? {
+    suspend fun trimAndMergeToTempFile(videoFilePaths: List<String>): String? {
         val editedMediaItems = mutableListOf<EditedMediaItem>()
         Toast.makeText(context, "Trimming videos", Toast.LENGTH_SHORT).show()
 
         // Trim each video and add to the list
-        for (i in videoFilePaths.indices) {
-            val inputUri = Uri.fromFile(File(videoFilePaths[i]))
-            val outputFile = File.createTempFile("trimmed_$i", ".mp4", context.cacheDir)
-            val outputPath = outputFile.absolutePath
+        coroutineScope {
+            val deferredTrims = mutableListOf<Deferred<EditedMediaItem?>>()
 
-            // Calculate trim intervals (customize as needed)
-            val startTimeUs = (i * 2000 * 1000).coerceAtLeast(0).toLong()
-            val endTimeUs = startTimeUs + 2000 * 1000.toLong()
+            // Trim each video and add to the list
+            for (i in videoFilePaths.indices) {
+                val inputUri = Uri.fromFile(File(videoFilePaths[i]))
+                val outputFile = File.createTempFile("trimmed_$i", ".mp4", context.cacheDir)
+                val outputPath = outputFile.absolutePath
 
-            val editedItem = trimVideo(inputUri, outputPath, startTimeUs, endTimeUs)
-            if (editedItem != null) {
-                editedMediaItems.add(editedItem)
-            } else {
-                // Handle trimming failure (log, notify user, etc.)
-                println("Trimming failed for video: ${inputUri}")
-                return null // Indicate failure by returning null
+                // Calculate trim intervals (customize as needed)
+                val startTimeUs = (i * 2000 * 1000).coerceAtLeast(0).toLong()
+                val endTimeUs = startTimeUs + 2000 * 1000.toLong()
+
+                val editedItem = trimVideo(inputUri, outputPath, startTimeUs, endTimeUs)
+                if (editedItem != null) {
+                    editedMediaItems.add(editedItem)
+                } else {
+                    // Handle trimming failure (log, notify user, etc.)
+                    println("Trimming failed for video: ${inputUri}")
+                    return@coroutineScope null // Indicate failure by returning null
+                }
             }
+            editedMediaItems.addAll(deferredTrims.awaitAll().filterNotNull())
         }
+
 
         // Generate a temporary file path
         val tempFile = File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
@@ -64,7 +75,12 @@ class VideoEditor(private val context: Context) {
     }
 
     @OptIn(UnstableApi::class)
-    private fun trimVideo(inputUri: Uri, outputPath: String, startTimeUs: Long, endTimeUs: Long): EditedMediaItem? {
+    private suspend fun trimVideo(
+        inputUri: Uri,
+        outputPath: String,
+        startTimeUs: Long,
+        endTimeUs: Long
+    ): EditedMediaItem? {
         val listener = ExportListener()
         val transformer = Transformer.Builder(context)
             .addListener(listener)
@@ -76,13 +92,13 @@ class VideoEditor(private val context: Context) {
                 .setUri(inputUri)
                 .setClippingConfiguration(
                     ClippingConfiguration.Builder()
-                        .setStartPositionMs(startTimeUs / 1000) // Use provided startTimeUs
-                        .setEndPositionMs(endTimeUs / 1000)   // Use provided endTimeUs
+                        .setStartPositionMs(startTimeUs / 1000)
+                        .setEndPositionMs(endTimeUs / 1000)
                         .build()
                 )
                 .build()
 
-            // Define video effects (if needed)
+            // Video Effects
             val videoEffects = mutableListOf<Effect>()
             videoEffects.add(RgbFilter.createGrayscaleFilter())
             videoEffects.add(
@@ -95,8 +111,8 @@ class VideoEditor(private val context: Context) {
             val editedMediaItem = EditedMediaItem.Builder(clippedVideo)
                 .setEffects(
                     Effects(
-                        /* audioProcessors= */ emptyList(),
-                        /* videoEffects= */ videoEffects
+                        emptyList(),
+                        videoEffects
                     )
                 )
                 .build()
@@ -115,7 +131,10 @@ class VideoEditor(private val context: Context) {
     }
 
     @OptIn(UnstableApi::class)
-    private fun mergeVideos(editedMediaItems: List<EditedMediaItem>, outputFilePath: String): Boolean {
+    private fun mergeVideos(
+        editedMediaItems: List<EditedMediaItem>,
+        outputFilePath: String
+    ): Boolean {
         val transformer = Transformer.Builder(context).build()
 
         try {
@@ -125,14 +144,14 @@ class VideoEditor(private val context: Context) {
             val composition = Composition.Builder(videoSequence)
                 .build()
 
-            // Start merging using transformer.start()
+            // Start merging using transformer.start(). Whether it is even merging the thing sef
             transformer.start(composition, outputFilePath)
             Log.d("VideoEditor", "Merged video: $outputFilePath")
             return true // Indicate success
         } catch (e: ExportException) {
             // Handle exceptions during merging
             e.printStackTrace()
-            return false // Indicate failure
+            return false
         } finally {
             transformer.cancel()
         }
@@ -140,15 +159,20 @@ class VideoEditor(private val context: Context) {
 
     // Helper function to generate output file path (for legacy storage)
     fun generateOutputFilePath(): String {
-        val externalStorageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-        return File(externalStorageDir, "merged_video_${System.currentTimeMillis()}.mp4").absolutePath
+        val externalStorageDir =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+        return File(
+            externalStorageDir,
+            "merged_video_${System.currentTimeMillis()}.mp4"
+        ).absolutePath
     }
 }
 
 
 @UnstableApi
 class ExportListener : Transformer.Listener {
-    @Deprecated("Deprecated in Java",
+    @Deprecated(
+        "Deprecated in Java",
         ReplaceWith("println(\"Transformation completed for: \${inputMediaItem.mediaMetadata}\")")
     )
     @OptIn(UnstableApi::class)
@@ -162,5 +186,4 @@ class ExportListener : Transformer.Listener {
         println("Transformation error for: ${inputMediaItem.mediaMetadata}, Error: ${exception.message}")
     }
 
-    // Override other methods as needed...
 }

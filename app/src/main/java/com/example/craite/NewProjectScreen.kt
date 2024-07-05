@@ -75,9 +75,8 @@ fun NewProject(
             // Permission granted, launch the media picker
             pickMultipleMedia.launch(PickVisualMediaRequest(PickVisualMedia.VideoOnly))
         } else {
-            // Permission denied, handle accordingly (e.g., show a message)
+            // Permission denied
             Log.d("Permission", "READ_MEDIA_VIDEO permission denied")
-            // You might want to display a Snackbar or a Dialog here
         }
     }
 

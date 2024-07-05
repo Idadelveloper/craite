@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                     val user = auth.currentUser
                     Toast.makeText(applicationContext, "Sucessfully signed in", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Handle sign-in failure
+                    // sign-in failure
                     val exception = task.exception
                     Toast.makeText(applicationContext, "Error signing in: $exception", Toast.LENGTH_SHORT).show()
                 }

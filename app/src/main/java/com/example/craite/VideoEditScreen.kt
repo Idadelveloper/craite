@@ -138,47 +138,52 @@ fun VideoEditScreen(
 
                 viewModel.launch {
                     val videoEditor = VideoEditor(context)
+                    val mergedVideoPath = videoEditor.trimAndMergeToTempFile(mediaFilePaths)
 
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        // MediaStore
-                        val contentValues = ContentValues().apply {
-                            put(MediaStore.MediaColumns.DISPLAY_NAME, "merged_video_${System.currentTimeMillis()}.mp4")
-                            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
-                        }
+                    mergedVideoPath?.let {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            // MediaStore (Android 10 and above)
+                            val contentValues = ContentValues().apply {
+                                put(MediaStore.MediaColumns.DISPLAY_NAME, "merged_video_${System.currentTimeMillis()}.mp4")
+                                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
+                            }
 
-                        val resolver = context.contentResolver
-                        val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+                            val resolver = context.contentResolver
+                            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
 
-                        uri?.let { videoUri ->
-                            resolver.openOutputStream(videoUri)?.use { outputStream ->
-                                val tempFilePath = videoEditor.trimAndMergeToTempFile(mediaFilePaths)
-                                tempFilePath?.let {
+                            uri?.let { videoUri ->
+                                resolver.openOutputStream(videoUri)?.use { outputStream ->
                                     File(it).inputStream().use { inputStream ->
                                         inputStream.copyTo(outputStream)
                                     }
                                     File(it).delete() // Delete temporary file
                                     println("Video saved to MediaStore: $videoUri")
-                                } ?: run {
-                                    // Handle merging failure
-                                    println("Trimming or merging failed.")
-                                }
-                            }
-                        } ?: run {
-                            // Handle error if URI is null
-                            println("Error saving to MediaStore: URI is null")
-                        }
 
-                    } else {
-                        // Legacy Storage
-                        val outputFilePath = videoEditor.generateOutputFilePath()
-                        val mergedVideoPath = videoEditor.trimAndMergeToTempFile(mediaFilePaths)
-                        mergedVideoPath?.let {
-                            println("Video saved to: $mergedVideoPath")
-                        } ?: run {
-                            // Handle the case where trimming or merging failed
-                            println("Trimming or merging failed.")
+                                    // Optionally, share the video
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "video/mp4"
+                                        putExtra(Intent.EXTRA_STREAM, videoUri)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
+                                }
+                            } ?: run {
+                                println("Error saving to MediaStore: URI is null")
+                            }
+                        } else {
+                            // Legacy Storage (Older Android versions)
+                            // Notify MediaScanner about the new file
+                            MediaScannerConnection.scanFile(
+                                context,
+                                arrayOf(it),
+                                arrayOf("video/mp4"),
+                                null
+                            )
+                            println("Video saved to: $it")
                         }
+                    } ?: run {
+                        // Handle the case where trimming or merging failed
+                        println("Trimming or merging failed.")
                     }
 
                     viewModel.hideProgressDialog()

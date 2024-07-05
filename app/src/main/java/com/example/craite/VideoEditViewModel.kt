@@ -15,7 +15,7 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _uiState = MutableStateFlow(initialEditSettings)
     val uiState: StateFlow<EditSettings> = _uiState.asStateFlow()
 
-    private val _currentMediaItemIndex = MutableStateFlow(0) // Track selected media item index
+    private val _currentMediaItemIndex = MutableStateFlow(0)
     val currentMediaItemIndex: StateFlow<Int> = _currentMediaItemIndex.asStateFlow()
 
     private val _showProgressDialog = MutableStateFlow(false)
@@ -63,5 +63,4 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
         updateEditSettings(currentEditSettings.copy(video_edits = updatedVideoEdits))
     }
 
-    // ... (Add functions for other editing actions like adding text, transitions, etc.)
 }
