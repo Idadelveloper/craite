@@ -16,10 +16,7 @@ import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
 
 class ProjectTypeConverters {
-//    val gson = GsonBuilder()
-//        .registerTypeAdapter(Uri::class.java, UriTypeAdapter())
-//        .create()
-//    val gson = GsonBuilder().registerTypeAdapter(Uri::class.java, UriJsonAdapter()).create()
+
     val gson = Gson()
 
     @TypeConverter
