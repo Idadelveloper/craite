@@ -10,23 +10,21 @@ import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.effect.RgbFilter
-import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
-import androidx.media3.transformer.ExportResult
-import androidx.media3.transformer.TransformationRequest
-import androidx.media3.transformer.TransformationResult
 import androidx.media3.transformer.Transformer
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.lang.Exception
+import kotlin.coroutines.resume
 
 class VideoEditor(private val context: Context) {
 
@@ -39,36 +37,32 @@ class VideoEditor(private val context: Context) {
         coroutineScope {
             val deferredTrims = mutableListOf<Deferred<EditedMediaItem?>>()
 
-            // Trim each video and add to the list
             for (i in videoFilePaths.indices) {
                 val inputUri = Uri.fromFile(File(videoFilePaths[i]))
                 val outputFile = File.createTempFile("trimmed_$i", ".mp4", context.cacheDir)
                 val outputPath = outputFile.absolutePath
 
-                // Calculate trim intervals (customize as needed)
                 val startTimeUs = (i * 2000 * 1000).coerceAtLeast(0).toLong()
                 val endTimeUs = startTimeUs + 2000 * 1000.toLong()
 
-                val editedItem = trimVideo(inputUri, outputPath, startTimeUs, endTimeUs)
-                if (editedItem != null) {
-                    editedMediaItems.add(editedItem)
-                } else {
-                    // Handle trimming failure (log, notify user, etc.)
-                    println("Trimming failed for video: ${inputUri}")
-                    return@coroutineScope null // Indicate failure by returning null
-                }
+                deferredTrims.add(async {
+                    trimVideo(inputUri, outputPath, startTimeUs, endTimeUs)
+                })
             }
+
+            // Wait for all trimmings to complete
             editedMediaItems.addAll(deferredTrims.awaitAll().filterNotNull())
         }
 
-
-        // Generate a temporary file path
-        val tempFile = File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
+        // Generate a temporary file path for merging
+        val tempFile = withContext(Dispatchers.IO) {
+            File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
+        }
         val tempFilePath = tempFile.absolutePath
 
-        // Merge to the temporary file
-        return if (mergeVideos(editedMediaItems, tempFilePath)) {
-            tempFilePath // Return the temporary file path on success
+        // Merge the trimmed videos
+        return if (mergeVideos(editedMediaItems.toList(), tempFilePath)) { // Use toList() for immutability
+            tempFilePath // Return the merged video path
         } else {
             null // Indicate merging failure
         }
@@ -81,79 +75,101 @@ class VideoEditor(private val context: Context) {
         startTimeUs: Long,
         endTimeUs: Long
     ): EditedMediaItem? {
-        val listener = ExportListener()
-        val transformer = Transformer.Builder(context)
-            .addListener(listener)
-            .build()
+        return suspendCancellableCoroutine { continuation ->
+            var editedMediaItem: EditedMediaItem? = null
 
-        return try {
-            // Create MediaItem with clipping
-            val clippedVideo = MediaItem.Builder()
-                .setUri(inputUri)
-                .setClippingConfiguration(
-                    ClippingConfiguration.Builder()
-                        .setStartPositionMs(startTimeUs / 1000)
-                        .setEndPositionMs(endTimeUs / 1000)
-                        .build()
+            val listener = object : Transformer.Listener {
+                @Deprecated("Deprecated in Java",
+                    ReplaceWith("continuation.resume(editedMediaItem)", "kotlin.coroutines.resume")
                 )
+                override fun onTransformationCompleted(inputMediaItem: MediaItem) {
+                    continuation.resume(editedMediaItem)
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
+                    Log.e("VideoEditor", "Transformation error: ${exception.message}")
+                    continuation.resume(null)
+                }
+            }
+
+            val transformer = Transformer.Builder(context)
+                .addListener(listener)
                 .build()
 
-            // Video Effects
-            val videoEffects = mutableListOf<Effect>()
-            videoEffects.add(RgbFilter.createGrayscaleFilter())
-            videoEffects.add(
-                ScaleAndRotateTransformation.Builder()
-                    .setScale(0.2f, 0.2f)
-                    .build()
-            )
-
-            // Create EditedMediaItem
-            val editedMediaItem = EditedMediaItem.Builder(clippedVideo)
-                .setEffects(
-                    Effects(
-                        emptyList(),
-                        videoEffects
+            try {
+                val clippedVideo = MediaItem.Builder()
+                    .setUri(inputUri)
+                    .setClippingConfiguration(
+                        ClippingConfiguration.Builder()
+                            .setStartPositionMs(startTimeUs / 1000)
+                            .setEndPositionMs(endTimeUs / 1000)
+                            .build()
                     )
-                )
-                .build()
+                    .build()
 
-            // Start trimming using transformer.start()
-            transformer.start(editedMediaItem, outputPath)
-            Log.d("VideoEditor", "Trimmed video: ${outputPath}")
-            editedMediaItem // Return the EditedMediaItem if successful
-        } catch (e: ExportException) {
-            // Handle exceptions during trimming
-            e.printStackTrace()
-            null // Return null if trimming fails
-        } finally {
-            transformer.cancel()
+                val videoEffects = mutableListOf<Effect>()
+                // ... add your effects here
+
+                editedMediaItem = EditedMediaItem.Builder(clippedVideo)
+                    .setEffects(
+                        Effects(
+                            emptyList(),
+                            videoEffects
+                        )
+                    )
+                    .build()
+
+                transformer.start(editedMediaItem, outputPath)
+
+                continuation.invokeOnCancellation {
+                    transformer.cancel()
+                }
+            } catch (e: ExportException) {
+                Log.e("VideoEditor", "Export Exception: ${e.message}")
+                continuation.resume(null)
+            }
         }
     }
 
     @OptIn(UnstableApi::class)
-    private fun mergeVideos(
+    private suspend fun mergeVideos(
         editedMediaItems: List<EditedMediaItem>,
         outputFilePath: String
     ): Boolean {
-        val transformer = Transformer.Builder(context).build()
+        return suspendCancellableCoroutine { continuation ->
+            val listener = object : Transformer.Listener {
+                @Deprecated("Deprecated in Java",
+                    ReplaceWith("continuation.resume(true)", "kotlin.coroutines.resume")
+                )
+                override fun onTransformationCompleted(inputMediaItem: MediaItem) {
+                    continuation.resume(true)
+                }
 
-        try {
-            // Build Composition for merging
-            val videoSequence = EditedMediaItemSequence(editedMediaItems)
-            Log.d("VideoEditor", "Edited media items: $editedMediaItems")
-            val composition = Composition.Builder(videoSequence)
+                @Deprecated("Deprecated in Java")
+                override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
+                    Log.e("VideoEditor", "Transformation error: ${exception.message}")
+                    continuation.resume(false)
+                }
+            }
+
+            val transformer = Transformer.Builder(context)
+                .addListener(listener)
                 .build()
 
-            // Start merging using transformer.start(). Whether it is even merging the thing sef
-            transformer.start(composition, outputFilePath)
-            Log.d("VideoEditor", "Merged video: $outputFilePath")
-            return true // Indicate success
-        } catch (e: ExportException) {
-            // Handle exceptions during merging
-            e.printStackTrace()
-            return false
-        } finally {
-            transformer.cancel()
+            try {
+                val videoSequence = EditedMediaItemSequence(editedMediaItems)
+                val composition = Composition.Builder(videoSequence).build()
+
+                transformer.start(composition, outputFilePath)
+
+                continuation.invokeOnCancellation {
+                    transformer.cancel()
+                }
+            } catch (e: ExportException) {
+                Log.e("VideoEditor", "Export Exception: ${e.message}")
+                continuation.resume(false)
+            }
         }
     }
 

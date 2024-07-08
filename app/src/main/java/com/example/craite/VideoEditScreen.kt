@@ -159,13 +159,15 @@ fun VideoEditScreen(
                                     }
                                     File(it).delete() // Delete temporary file
                                     println("Video saved to MediaStore: $videoUri")
+                                    Toast.makeText(context, "Video saved to MediaStore: $videoUri", Toast.LENGTH_SHORT).show()
 
-                                    // Optionally, share the video
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "video/mp4"
-                                        putExtra(Intent.EXTRA_STREAM, videoUri)
-                                    }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
+                                    // Removed shareIntent code here
+
+                                    // Update ExoPlayer with merged video URI (if needed)
+                                    val mergedMediaItem = MediaItem.fromUri(videoUri)
+                                    exoPlayer.setMediaItem(mergedMediaItem)
+                                    exoPlayer.prepare()
+                                    exoPlayer.playWhenReady = true
                                 }
                             } ?: run {
                                 println("Error saving to MediaStore: URI is null")
@@ -180,6 +182,13 @@ fun VideoEditScreen(
                                 null
                             )
                             println("Video saved to: $it")
+                            Toast.makeText(context, "Video saved to: $it", Toast.LENGTH_SHORT).show()
+
+                            // Update ExoPlayer with merged video file path (if needed)
+                            val mergedMediaItem = MediaItem.fromUri(Uri.fromFile(File(it)))
+                            exoPlayer.setMediaItem(mergedMediaItem)
+                            exoPlayer.prepare()
+                            exoPlayer.playWhenReady = true
                         }
                     } ?: run {
                         // Handle the case where trimming or merging failed
