@@ -46,7 +46,7 @@ class VideoEditor(private val context: Context) {
                 val endTimeUs = startTimeUs + 2000 * 1000.toLong()
 
                 deferredTrims.add(async {
-                    trimVideo(inputUri, outputPath, startTimeUs, endTimeUs)
+                    trimVideo(inputUri, outputPath)
                 })
             }
 
@@ -72,21 +72,17 @@ class VideoEditor(private val context: Context) {
     private suspend fun trimVideo(
         inputUri: Uri,
         outputPath: String,
-        startTimeUs: Long,
-        endTimeUs: Long
+        startTimeUs: Long = 0L, // Start trimming at 0 seconds
+        endTimeUs: Long = 2000000L // End trimming at 2 seconds (2000 milliseconds * 1000)
     ): EditedMediaItem? {
         return suspendCancellableCoroutine { continuation ->
             var editedMediaItem: EditedMediaItem? = null
 
             val listener = object : Transformer.Listener {
-                @Deprecated("Deprecated in Java",
-                    ReplaceWith("continuation.resume(editedMediaItem)", "kotlin.coroutines.resume")
-                )
                 override fun onTransformationCompleted(inputMediaItem: MediaItem) {
                     continuation.resume(editedMediaItem)
                 }
 
-                @Deprecated("Deprecated in Java")
                 override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
                     Log.e("VideoEditor", "Transformation error: ${exception.message}")
                     continuation.resume(null)
@@ -102,8 +98,8 @@ class VideoEditor(private val context: Context) {
                     .setUri(inputUri)
                     .setClippingConfiguration(
                         ClippingConfiguration.Builder()
-                            .setStartPositionMs(startTimeUs / 1000)
-                            .setEndPositionMs(endTimeUs / 1000)
+                            .setStartPositionMs(startTimeUs / 1000) // Start at 0 seconds
+                            .setEndPositionMs(endTimeUs / 1000)   // End at 2 seconds
                             .build()
                     )
                     .build()
