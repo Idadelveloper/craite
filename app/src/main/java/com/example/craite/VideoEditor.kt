@@ -27,6 +27,7 @@ import java.io.File
 import kotlin.coroutines.resume
 
 class VideoEditor(private val context: Context) {
+    private val videoEffects = VideoEffects()
 
     @OptIn(UnstableApi::class)
     suspend fun trimAndMergeToTempFile(videoFilePaths: List<String>): String? {
@@ -79,10 +80,14 @@ class VideoEditor(private val context: Context) {
             var editedMediaItem: EditedMediaItem? = null
 
             val listener = object : Transformer.Listener {
+                @Deprecated("Deprecated in Java",
+                    ReplaceWith("continuation.resume(editedMediaItem)", "kotlin.coroutines.resume")
+                )
                 override fun onTransformationCompleted(inputMediaItem: MediaItem) {
                     continuation.resume(editedMediaItem)
                 }
 
+                @Deprecated("Deprecated in Java")
                 override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
                     Log.e("VideoEditor", "Transformation error: ${exception.message}")
                     continuation.resume(null)
@@ -104,14 +109,17 @@ class VideoEditor(private val context: Context) {
                     )
                     .build()
 
-                val videoEffects = mutableListOf<Effect>()
-                // ... add your effects here
+//                val videoEffects = mutableListOf<Effect>()
+                val effects = listOf(
+                    videoEffects.zoomIn(), // Example effect
+                    // Add more effects as needed
+                )
 
                 editedMediaItem = EditedMediaItem.Builder(clippedVideo)
                     .setEffects(
                         Effects(
                             emptyList(),
-                            videoEffects
+                            effects
                         )
                     )
                     .build()
