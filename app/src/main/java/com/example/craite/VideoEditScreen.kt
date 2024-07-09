@@ -2,7 +2,6 @@ package com.example.craite
 
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
@@ -12,8 +11,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.result.launch
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +18,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -35,34 +31,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.example.craite.data.EditSettings
 import com.example.craite.data.MediaEffect
-import com.example.craite.data.TextOverlay
+import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.VideoEdit
 import com.example.craite.data.models.ProjectDatabase
 import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.io.File
 import java.io.InputStream
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import kotlin.random.Random
+import kotlin.random.nextInt
+import kotlin.text.padStart
+import kotlin.text.toString
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +64,7 @@ fun VideoEditScreen(
 ) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
-    val viewModel = remember { VideoEditViewModel(generateFakeEditSettings()) }
+    val viewModel = remember { VideoEditViewModel(generateFakeEditSettings(mediaFilePaths.size)) }
     val currentMediaIndex by viewModel.currentMediaItemIndex.collectAsState()
     val mediaUris = mediaFilePaths.map { Uri.fromFile(File(it)) }
     val mediaItemMap = mediaUris.indices.associateWith { MediaItem.fromUri(mediaUris[it]) }
@@ -132,6 +121,7 @@ fun VideoEditScreen(
             }
 
             Button(onClick = {
+                Log.d("Edit Settings", "${generateFakeEditSettings(mediaFilePaths.size)}")
                 Log.d("Download button", "starting download")
                 viewModel.showProgressDialog()
                 Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
@@ -247,42 +237,54 @@ fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? {
     }
 }
 
-fun generateFakeEditSettings(): EditSettings {
-    val videoEdits = listOf(
-        VideoEdit(
-            edit = "trim",
-            effects = listOf(
-                MediaEffect(adjustment = 0.5, name = "brightness"),
-                MediaEffect(adjustment = -0.2, name = "contrast")
-            ),
-            end_time = 15.0,
-            id = 1,
-            start_time = 5.0,
-            text = listOf(
-                TextOverlay(
-                    color = "#FFFFFF",
-                    duration = 3,
-                    font_size = 24,
-                    label = "Hello",
-                    position = "top-left"
+fun generateFakeEditSettings(numVideos: Int): EditSettings {
+    val random = Random(System.currentTimeMillis())
+
+    val videoEdits = mutableListOf<VideoEdit>()
+
+    for (i in 1..numVideos) {
+        val startTime = random.nextDouble(0.0, 1.0)
+        val endTime = random.nextDouble(startTime + 2, 4.0)
+
+        val effects = mutableListOf<MediaEffect>()
+        if (random.nextBoolean()) {
+            effects.add(MediaEffect(name = "brightness", adjustment = listOf(random.nextFloat() - 0.5f)))
+        }
+        if (random.nextBoolean()) {
+            effects.add(MediaEffect(name = "contrast", adjustment = listOf(random.nextFloat())))
+        }
+        if (random.nextBoolean()) {
+            effects.add(MediaEffect(name = "saturation", adjustment = listOf(random.nextFloat() + 0.5f)))
+        }
+
+        val textOverlay = if (random.nextBoolean()) {
+            listOf(
+                CraiteTextOverlay(
+                    text = "Video $i",
+                    font_size = random.nextInt(16, 32),
+                    text_color = "#${random.nextInt(0xFFFFFF + 1).toString(16).padStart(6, '0')}",
+                    background_color = "#80000000"
                 )
-            ),
-            transition = "fade",
-            video_name = "video1.mp4"
-        ),
-        VideoEdit(
-            edit = "crop",
-            effects = listOf(
-                MediaEffect(adjustment = 1.2, name = "saturation")
-            ),
-            end_time = 25.0,
-            id = 2,
-            start_time = 10.0,
-            text = emptyList(),
-            transition = "slide",
-            video_name = "video2.mp4"
+            )
+        } else {
+            emptyList()
+        }
+
+        val transitions = listOf("fade", "slide", "crossfade")
+        val transition = transitions[random.nextInt(transitions.size)]
+
+        videoEdits.add(
+            VideoEdit(
+                effects = effects,
+                end_time = endTime,
+                id = i,
+                start_time = startTime,
+                text = textOverlay,
+                transition = transition,
+                video_name = "video$i.mp4"
+            )
         )
-    )
+    }
 
     return EditSettings(video_edits = videoEdits)
 }
