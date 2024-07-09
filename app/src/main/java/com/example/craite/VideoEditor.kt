@@ -6,16 +6,20 @@ import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.OverlayEffect
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.Transformer
+import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -23,6 +27,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.internal.immutableListOf
 import java.io.File
 import kotlin.coroutines.resume
 
@@ -110,10 +115,20 @@ class VideoEditor(private val context: Context) {
                     .build()
 
 //                val videoEffects = mutableListOf<Effect>()
-                val effects = listOf(
-                    videoEffects.zoomIn(), // Example effect
-                    // Add more effects as needed
+                val textOverlay = videoEffects.addStaticTextOverlay(
+                    text = "Hello, World!", // Customize the text here
+                    fontSize = 100,
+                    textColor = Color.Yellow.toArgb(),
+                    x = 0.5f, // Center horizontally
+                    y = 0.8f, // Near the bottom
+                    width = 0.8f // Occupy 80% of the width
                 )
+                val overlayEffect = OverlayEffect(ImmutableList.of(textOverlay))
+                val effects = listOf(
+                    videoEffects.zoomIn(),
+                    overlayEffect
+                )
+
 
                 editedMediaItem = EditedMediaItem.Builder(clippedVideo)
                     .setEffects(
@@ -123,6 +138,7 @@ class VideoEditor(private val context: Context) {
                         )
                     )
                     .build()
+                Log.d("VideoEditor", "Effects applied: $effects")
 
                 transformer.start(editedMediaItem, outputPath)
 
