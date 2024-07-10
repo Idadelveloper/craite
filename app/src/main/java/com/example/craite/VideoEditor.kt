@@ -8,17 +8,22 @@ import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.text
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.OverlayEffect
+import androidx.media3.effect.TextOverlay
+import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.Transformer
+import com.example.craite.data.EditSettings
+import com.example.craite.data.VideoEdit
 import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -30,34 +35,36 @@ import kotlinx.coroutines.withContext
 import okhttp3.internal.immutableListOf
 import java.io.File
 import kotlin.coroutines.resume
+import kotlin.text.forEach
+import kotlin.text.toLong
 
-class VideoEditor(private val context: Context) {
+class VideoEditor(private val context: Context, private val editSettings: EditSettings) {
     private val videoEffects = VideoEffects()
 
     @OptIn(UnstableApi::class)
-    suspend fun trimAndMergeToTempFile(videoFilePaths: List<String>): String? {
+    suspend fun trimAndMergeToTempFile(
+        videoFilePaths: List<String>,
+        editSettings: EditSettings
+    ): String? {
         val editedMediaItems = mutableListOf<EditedMediaItem>()
-        Toast.makeText(context, "Trimming videos", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Trimming and editing videos", Toast.LENGTH_SHORT).show()
 
-        // Trim each video and add to the list
+        // Trim and apply edits to each video
         coroutineScope {
-            val deferredTrims = mutableListOf<Deferred<EditedMediaItem?>>()
+            val deferredEdits = mutableListOf<Deferred<EditedMediaItem?>>()
 
             for (i in videoFilePaths.indices) {
                 val inputUri = Uri.fromFile(File(videoFilePaths[i]))
-                val outputFile = File.createTempFile("trimmed_$i", ".mp4", context.cacheDir)
+                val outputFile = File.createTempFile("edited_$i", ".mp4", context.cacheDir)
                 val outputPath = outputFile.absolutePath
+                val videoEdit = editSettings.video_edits.getOrNull(i)
 
-                val startTimeUs = (i * 2000 * 1000).coerceAtLeast(0).toLong()
-                val endTimeUs = startTimeUs + 2000 * 1000.toLong()
-
-                deferredTrims.add(async {
-                    trimVideo(inputUri, outputPath)
+                deferredEdits.add(async {
+                    trimAndApplyEditsToVideo(inputUri, outputPath, videoEdit)
                 })
             }
 
-            // Wait for all trimmings to complete
-            editedMediaItems.addAll(deferredTrims.awaitAll().filterNotNull())
+            editedMediaItems.addAll(deferredEdits.awaitAll().filterNotNull())
         }
 
         // Generate a temporary file path for merging
@@ -66,11 +73,11 @@ class VideoEditor(private val context: Context) {
         }
         val tempFilePath = tempFile.absolutePath
 
-        // Merge the trimmed videos
-        return if (mergeVideos(editedMediaItems.toList(), tempFilePath)) { // Use toList() for immutability
-            tempFilePath // Return the merged video path
+        // Merge the trimmed and edited videos
+        return if (mergeVideos(editedMediaItems.toList(), tempFilePath)) {
+            tempFilePath
         } else {
-            null // Indicate merging failure
+            null
         }
     }
 
@@ -151,6 +158,99 @@ class VideoEditor(private val context: Context) {
             }
         }
     }
+
+    @OptIn(UnstableApi::class)
+    private suspend fun trimAndApplyEditsToVideo(
+        inputUri: Uri,
+        outputPath: String,
+        videoEdit: VideoEdit?
+    ): EditedMediaItem? {
+        return suspendCancellableCoroutine { continuation ->
+            var editedMediaItem: EditedMediaItem? = null
+
+            val listener = object : Transformer.Listener {
+                @Deprecated("Deprecated in Java",
+                    ReplaceWith("continuation.resume(editedMediaItem)", "kotlin.coroutines.resume")
+                )
+                override fun onTransformationCompleted(inputMediaItem: MediaItem) {
+                    continuation.resume(editedMediaItem)
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
+                    Log.e("VideoEditor", "Transformation error: ${exception.message}")
+                    continuation.resume(null)
+                }
+            }
+
+            try {
+                val mediaItemBuilder = MediaItem.Builder().setUri(inputUri)
+                val effects = mutableListOf<Effect>()
+
+                videoEdit?.let {
+                    // Apply trimming based on startTime and endTime
+                    mediaItemBuilder.setClippingConfiguration(
+                        ClippingConfiguration.Builder()
+                            .setStartPositionMs((it.start_time * 1000).toLong())
+                            .setEndPositionMs((it.end_time * 1000).toLong())
+                            .build()
+                    )
+
+                    // Apply effects
+                    it.effects.forEach { effect ->
+                        when (effect.name) {
+                            "brightness" -> effects.add(videoEffects.brightness(effect.adjustment[0]))
+                            "contrast" -> effects.add(videoEffects.contrast(effect.adjustment[0]))
+                        }
+                    }
+
+                    val textOverlays = mutableListOf<TextureOverlay>()
+                    it.text.forEach {textOverlay ->
+                        textOverlays.add(
+                            videoEffects.addStaticTextOverlay(
+                                text = textOverlay.text,
+                                fontSize = textOverlay.font_size,
+                                textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
+                                backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
+                            )
+                        )
+                    }
+
+                    if (textOverlays.isNotEmpty()) { // Only apply if there are text overlays
+                        val overlayEffect = OverlayEffect(ImmutableList.of(textOverlays[0]))
+                        effects.add(
+                            overlayEffect // Pass the list to OverlayEffect
+                        )
+                    }
+
+                }
+
+                editedMediaItem = EditedMediaItem.Builder(mediaItemBuilder.build())
+                    .setEffects(
+                        Effects(
+                            emptyList(),
+                            effects
+                        )
+                    )
+                    .build()
+                Log.d("VideoEditor", "Effects applied: $effects")
+
+                val transformer = Transformer.Builder(context)
+                    .addListener(listener)
+                    .build()
+
+                transformer.start(editedMediaItem, outputPath)
+
+                continuation.invokeOnCancellation {
+                    transformer.cancel()
+                }
+            } catch (e: ExportException) {
+                Log.e("VideoEditor", "Export Exception: ${e.message}")
+                continuation.resume(null)
+            }
+        }
+    }
+
 
     @OptIn(UnstableApi::class)
     private suspend fun mergeVideos(

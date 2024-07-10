@@ -121,14 +121,14 @@ fun VideoEditScreen(
             }
 
             Button(onClick = {
-                Log.d("Edit Settings", "${generateFakeEditSettings(mediaFilePaths.size)}")
+                val fakeEditSettings = generateFakeEditSettings(mediaFilePaths.size)
                 Log.d("Download button", "starting download")
                 viewModel.showProgressDialog()
                 Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
 
                 viewModel.launch {
-                    val videoEditor = VideoEditor(context)
-                    val mergedVideoPath = videoEditor.trimAndMergeToTempFile(mediaFilePaths)
+                    val videoEditor = VideoEditor(context, fakeEditSettings)
+                    val mergedVideoPath = videoEditor.trimAndMergeToTempFile(mediaFilePaths, fakeEditSettings)
 
                     mergedVideoPath?.let {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
