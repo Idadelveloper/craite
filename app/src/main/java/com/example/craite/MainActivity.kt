@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
 import com.example.craite.data.models.ProjectDatabase
+import com.example.craite.ui.screens.home.HomeScreenNew
 import com.example.craite.ui.theme.CraiteTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -29,6 +30,7 @@ import com.google.firebase.ktx.Firebase
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,8 +40,11 @@ class MainActivity : ComponentActivity() {
             signInAnonymously()
         }
         setContent {
-            CraiteTheme {
+            CraiteTheme(
+                darkTheme = true
+            ) {
                 val navController = rememberNavController()
+
                 val user = auth.currentUser
                 Log.d("user", "$user")
                 Log.d("user id", "${user?.uid}")
@@ -54,7 +59,7 @@ class MainActivity : ComponentActivity() {
                 if (task.isSuccessful) {
                     // Sign in success
                     val user = auth.currentUser
-                    Toast.makeText(applicationContext, "Sucessfully signed in", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "Successfully signed in", Toast.LENGTH_SHORT).show()
                 } else {
                     // sign-in failure
                     val exception = task.exception
@@ -75,9 +80,18 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
 
     val user by remember { mutableStateOf(currentUser) }
 
-    NavHost(navController = navController, startDestination = "home_screen", modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    NavHost(
+        navController = navController,
+        startDestination = "home_screen2",
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
         composable("home_screen") {
             HomeScreen(navController = navController, db = db, modifier = Modifier, user = user)
+        }
+        composable("home_screen2") {
+            HomeScreenNew()
         }
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context, user = user)
@@ -96,6 +110,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             if (mediaUris != null) {
                 VideoEditScreen(mediaUris, navController, user, db)
             }
+
         }
     }
 
