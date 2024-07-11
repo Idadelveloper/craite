@@ -1,7 +1,7 @@
 package com.example.craite.data
 
 data class GeminiRequest(
-    val userId: String,
-    val prompt: String,
-    val projectId: Int
+    val user_id: String,
+    val gemini_prompt: String,
+    val project_id: Int
 )

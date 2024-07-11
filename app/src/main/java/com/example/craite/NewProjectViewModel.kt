@@ -10,6 +10,11 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
+import com.example.craite.data.EditSettingsRepository
+import com.example.craite.data.EditSettingsRepositoryImpl
+import com.example.craite.data.GeminiRequest
+import com.example.craite.data.GeminiResult
+import com.example.craite.data.RetrofitClient
 import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDao
 import com.google.firebase.auth.FirebaseUser
@@ -159,4 +164,29 @@ class NewProjectViewModel: ViewModel() {
         }
     }
 
+    private fun triggerVideoProcessing(userId: String, prompt: String, projectId: Int) {
+        viewModelScope.launch {
+            val repository: EditSettingsRepository =
+                EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
+            repository.getEditSettings(GeminiRequest(userId, prompt, projectId))
+                .collect { result ->
+                    when (result) {
+                        is GeminiResult.Success -> {
+                            val editSettings = result.data
+                            Log.d("VideoEditViewModel", "Edit settings received: $editSettings")
+                            // You can store these edit settings in your database or use them immediately
+                            // ... (Call your VideoEditor functions to apply edits if needed)
+                        }
+
+                        is GeminiResult.Error -> {
+                            Log.e(
+                                "VideoEditViewModel",
+                                "Error fetching edit settings: ${result.message}"
+                            )
+                            // Handle the error appropriately (e.g., show a message to the user)
+                        }
+                    }
+                }
+        }
+    }
 }

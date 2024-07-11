@@ -190,6 +190,15 @@ fun VideoEditScreen(
             }) {
                 Text("Download Final Video")
             }
+            Button(onClick = {
+                // Trigger API request to Flask backend
+                user?.let {
+                    val projectId = 9
+                        viewModel.fetchEditSettings(it.uid, "This is an ice cream date of my sister and I", projectId)
+                }
+            }) {
+                Text("Process on Server")
+            }
         }
     }
 

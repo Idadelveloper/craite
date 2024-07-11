@@ -1,10 +1,16 @@
 package com.example.craite
 
+import android.util.Log
 import androidx.activity.result.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.craite.data.EditSettings
+import com.example.craite.data.EditSettingsRepository
+import com.example.craite.data.EditSettingsRepositoryImpl
+import com.example.craite.data.GeminiRequest
+import com.example.craite.data.GeminiResult
 import com.example.craite.data.MediaEffect
+import com.example.craite.data.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,24 +49,32 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
         }
     }
 
-    // Example editing action functions (add more as needed)
-    fun trimVideo(videoIndex: Int, startTime: Double, endTime: Double) {
-        val currentEditSettings = _uiState.value
-        val updatedVideoEdits = currentEditSettings.video_edits.toMutableList()
-        updatedVideoEdits[videoIndex] = updatedVideoEdits[videoIndex].copy(
-            start_time = startTime,
-            end_time = endTime
-        )
-        updateEditSettings(currentEditSettings.copy(video_edits = updatedVideoEdits))
-    }
+    private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
 
-    fun addEffect(videoIndex: Int, effect: MediaEffect) {
-        val currentEditSettings = _uiState.value
-        val updatedVideoEdits = currentEditSettings.video_edits.toMutableList()
-        val updatedEffects = updatedVideoEdits[videoIndex].effects.toMutableList()
-        updatedEffects.add(effect)
-        updatedVideoEdits[videoIndex] = updatedVideoEdits[videoIndex].copy(effects = updatedEffects)
-        updateEditSettings(currentEditSettings.copy(video_edits = updatedVideoEdits))
+    fun fetchEditSettings(userId: String, prompt: String, projectId: Int) {
+        Log.d("VideoEditViewModel", "Fetching edit settings for user: $userId, prompt: $prompt, project: $projectId")
+        viewModelScope.launch {
+            repository.getEditSettings(GeminiRequest(userId, prompt, projectId))
+                .collect { result ->
+                    when (result) {
+                        is GeminiResult.Success -> {
+                            Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
+                            val editSettings = result.data
+                            editSettings?.let {
+                                updateEditSettings(it) // Update the UI state with received settings
+                                // You can also trigger video processing with VideoEditor here if needed
+                            }
+                            Log.d("VideoEditViewModel", "Edit settings received: $editSettings")
+                            // You can store these edit settings in your database or use them immediately
+                            // ... (Call your VideoEditor functions to apply edits if needed)
+                        }
+                        is GeminiResult.Error -> {
+                            Log.e("VideoEditViewModel", "Error fetching edit settings: ${result.message}")
+                            // Handle the error appropriately (e.g., show a message to the user)
+                        }
+                    }
+                }
+        }
     }
 
 }

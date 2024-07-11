@@ -10,6 +10,6 @@ interface GeminiResponseApi {
     suspend fun getGeminiResponse(@Body request: GeminiRequest): GeminiResponse
 
     companion object {
-        const val BASE_URL = "YOUR_FLASK_BACKEND_URL"
+        const val BASE_URL = "http://192.168.1.30:5000"
     }
 }
