@@ -33,4 +33,7 @@ interface ProjectDao {
 
     @Query("UPDATE Project SET editingSettings = :editingSettings WHERE id = :projectId")
     suspend fun updateEditingSettings(projectId: Int, editingSettings: String)
+
+    @Query("UPDATE Project SET prompt = :prompt, promptId = :promptId WHERE id = :projectId")
+    suspend fun updatePromptData(projectId: Int, prompt: String, promptId: String)
 }
