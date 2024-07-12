@@ -193,8 +193,8 @@ fun VideoEditScreen(
             Button(onClick = {
                 // Trigger API request to Flask backend
                 user?.let {
-                    val projectId = 9
-                        viewModel.fetchEditSettings(it.uid, "This is an ice cream date of my sister and I", projectId)
+                    val projectId = 1
+                        viewModel.fetchEditSettings(it.uid, "I need a cute compilation of these my graduation videos", projectId)
                 }
             }) {
                 Text("Process on Server")

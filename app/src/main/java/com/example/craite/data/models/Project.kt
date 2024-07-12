@@ -13,6 +13,9 @@ data class Project(
     val name: String,
     val media: List<String>,
     var mediaNames: Map<String, String> = emptyMap(),
+    var prompt: String? = null,
+    var promptId: String? = null,
+    var isProcessing: Boolean = false,
     val editingSettings: EditSettings? = null,
     val geminiResponse: GeminiResponse? = null
 )
