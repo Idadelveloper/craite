@@ -21,6 +21,7 @@ import androidx.navigation.navArgument
 import androidx.room.Room
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.home.HomeScreenNew
+import com.example.craite.ui.screens.project.CreateProjectScreen
 import com.example.craite.ui.theme.CraiteTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -82,7 +83,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
 
     NavHost(
         navController = navController,
-        startDestination = "home_screen2",
+        startDestination = "project",
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
@@ -90,8 +91,11 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
         composable("home_screen") {
             HomeScreen(navController = navController, db = db, modifier = Modifier, user = user)
         }
-        composable("home_screen2") {
+        composable("home") {
             HomeScreenNew()
+        }
+        composable("project") {
+            CreateProjectScreen()
         }
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context, user = user)

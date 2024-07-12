@@ -12,6 +12,7 @@ googleGmsGoogleServices = "4.4.2"
 firebaseStorage = "21.0.0"
 firebaseFunctions = "21.0.0"
 firebaseFirestoreKtx = "25.0.0"
+material3 = "1.2.1"
 material3Android = "1.2.1"
 
 [libraries]
@@ -33,6 +34,7 @@ firebase-storage = { group = "com.google.firebase", name = "firebase-storage", v
 firebase-functions = { group = "com.google.firebase", name = "firebase-functions", version.ref = "firebaseFunctions" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
+material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
