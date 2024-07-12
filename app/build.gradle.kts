@@ -63,7 +63,7 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.functions)
     implementation(libs.firebase.firestore.ktx)
-    implementation(libs.androidx.material3.android)
+    //  implementation(libs.androidx.material3.android) Remove Material 3 Android (M3 for Non Compose Android Dev)
     val lifecycleVersion = "2.8.1"
     val activityVersion = "1.9.0"
     val navVersion = "2.7.7"
@@ -143,7 +143,7 @@ dependencies {
     // kotlin coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 
-
+    implementation(libs.material3)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -151,7 +151,6 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
