@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.functions)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.androidx.material3.android)
     val lifecycleVersion = "2.8.1"
     val activityVersion = "1.9.0"
     val navVersion = "2.7.7"
