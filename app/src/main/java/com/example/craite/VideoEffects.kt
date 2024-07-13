@@ -58,6 +58,15 @@ class  VideoEffects {
     }
 
     @OptIn(UnstableApi::class)
+    fun saturation(saturation: Float): RgbAdjustment {
+        return RgbAdjustment.Builder()
+            .setRedScale(1f)
+            .setGreenScale(1f)
+            .setBlueScale(1f)
+            .build()
+    }
+
+    @OptIn(UnstableApi::class)
     fun sepia(): RgbAdjustment {
         return RgbAdjustment.Builder()
             .setRedScale(0.393f)

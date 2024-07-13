@@ -201,6 +201,7 @@ class VideoEditor(private val context: Context, private val editSettings: EditSe
                         when (effect.name) {
                             "brightness" -> effects.add(videoEffects.brightness(effect.adjustment[0]))
                             "contrast" -> effects.add(videoEffects.contrast(effect.adjustment[0]))
+                            "saturation" -> effects.add(videoEffects.saturation(effect.adjustment[0]))
                         }
                     }
 
