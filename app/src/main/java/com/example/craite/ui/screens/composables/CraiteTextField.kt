@@ -37,7 +37,6 @@ var value by remember {
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium )
 
-
         TextField(
             value = value,
             onValueChange = { newValue:TextFieldValue ->
@@ -46,7 +45,9 @@ var value by remember {
 
            placeholder = {Text(text = hintText)},
             modifier = Modifier
-                .fillMaxWidth().wrapContentHeight().padding(0.dp)
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(0.dp)
 
            ,
             shape = RoundedCornerShape(28.dp),

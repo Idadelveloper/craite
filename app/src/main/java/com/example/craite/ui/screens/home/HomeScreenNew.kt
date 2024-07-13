@@ -56,7 +56,7 @@ fun HomeScreenNew( ) {
                     modifier = Modifier.fillMaxHeight(.8f),
                     painter = painterResource(R.drawable.surfing),
                     contentDescription = "Surfer surfing", 
-                   gradientColor = AppColor().greenSeed
+                   gradientColor = AppColor().black
                 )
             Column(
                     modifier = Modifier
