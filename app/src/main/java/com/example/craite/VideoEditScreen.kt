@@ -151,7 +151,6 @@ fun VideoEditScreen(
                                     println("Video saved to MediaStore: $videoUri")
                                     Toast.makeText(context, "Video saved to MediaStore: $videoUri", Toast.LENGTH_SHORT).show()
 
-                                    // Removed shareIntent code here
 
                                     // Update ExoPlayer with merged video URI (if needed)
                                     val mergedMediaItem = MediaItem.fromUri(videoUri)
@@ -193,8 +192,14 @@ fun VideoEditScreen(
             Button(onClick = {
                 // Trigger API request to Flask backend
                 user?.let {
-                    val projectId = 1
-                        viewModel.fetchEditSettings(it.uid, "I need a cute compilation of these my graduation videos", projectId)
+                    val projectId = 3
+                    val promptId = "MnXzLYd8c3IUF4bFeW09"
+                        viewModel.fetchEditSettings(
+                            it.uid,
+                            "I need a cute compilation of my this my small outing where I had ice cream",
+                            projectId,
+                            promptId
+                        )
                 }
             }) {
                 Text("Process on Server")

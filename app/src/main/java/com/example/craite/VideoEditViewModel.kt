@@ -51,10 +51,10 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
     private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
 
-    fun fetchEditSettings(userId: String, prompt: String, projectId: Int) {
+    fun fetchEditSettings(userId: String, prompt: String, projectId: Int, promptId: String) {
         Log.d("VideoEditViewModel", "Fetching edit settings for user: $userId, prompt: $prompt, project: $projectId")
         viewModelScope.launch {
-            repository.getEditSettings(GeminiRequest(userId, prompt, projectId))
+            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId))
                 .collect { result ->
                     when (result) {
                         is GeminiResult.Success -> {

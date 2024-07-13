@@ -146,6 +146,12 @@ class NewProjectViewModel: ViewModel() {
                             .addOnSuccessListener {
                                 Log.d("Firestore", "Prompt data added with ID: ${promptDocRef.id}")
                                 Toast.makeText(context, "Prompt data added with ID: ${promptDocRef.id}", Toast.LENGTH_SHORT).show()
+
+                                // Update prompt and promptId in the room database
+                                viewModelScope.launch {
+                                    projectDao.updatePromptData(projectId, prompt, promptDocRef.id)
+                                    Log.d("NewProjectViewModel", "Prompt data updated in room database")
+                                }
                             }
                             .addOnFailureListener { e ->
                                 Log.e("Firestore", "Error adding prompt data", e)
@@ -164,11 +170,11 @@ class NewProjectViewModel: ViewModel() {
         }
     }
 
-    private fun triggerVideoProcessing(userId: String, prompt: String, projectId: Int) {
+    private fun triggerVideoProcessing(userId: String, prompt: String, projectId: Int, promptId: String) {
         viewModelScope.launch {
             val repository: EditSettingsRepository =
                 EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
-            repository.getEditSettings(GeminiRequest(userId, prompt, projectId))
+            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId))
                 .collect { result ->
                     when (result) {
                         is GeminiResult.Success -> {
