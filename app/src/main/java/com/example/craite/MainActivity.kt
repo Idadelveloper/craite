@@ -12,6 +12,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
+import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.home.HomeScreenNew
 import com.example.craite.ui.screens.project.CreateProjectScreen
@@ -112,7 +114,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
             val mediaUris = project?.media
             if (mediaUris != null) {
-                VideoEditScreen(mediaUris, navController, user, db)
+                VideoEditScreen(project, navController, user, db)
             }
 
         }

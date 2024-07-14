@@ -44,6 +44,7 @@ import com.example.craite.data.EditSettings
 import com.example.craite.data.MediaEffect
 import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.VideoEdit
+import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.google.firebase.auth.FirebaseUser
 import java.io.File
@@ -57,19 +58,20 @@ import kotlin.text.toString
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoEditScreen(
-    mediaFilePaths: List<String>,
+    project: Project,
     navController: NavController,
     user: FirebaseUser?,
     projectDatabase: ProjectDatabase
 ) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
-    val viewModel = remember { VideoEditViewModel(generateFakeEditSettings(mediaFilePaths.size)) }
+    val viewModel = remember { VideoEditViewModel(generateFakeEditSettings(project.media.size)) }
     val currentMediaIndex by viewModel.currentMediaItemIndex.collectAsState()
-    val mediaUris = mediaFilePaths.map { Uri.fromFile(File(it)) }
+    val mediaUris = project.media.map { Uri.fromFile(File(it)) }
     val mediaItemMap = mediaUris.indices.associateWith { MediaItem.fromUri(mediaUris[it]) }
-    val uiState by viewModel.uiState.collectAsState()
+    val editSettings by viewModel.uiState.collectAsState()
     val showProgressDialog by viewModel.showProgressDialog.collectAsState()
+    val downloadButtonEnabled by viewModel.downloadButtonEnabled.collectAsState()
 
     Scaffold(
         modifier = Modifier
@@ -120,108 +122,149 @@ fun VideoEditScreen(
                 }
             }
 
+            // Fetch and Save Edits Button
             Button(onClick = {
-                val fakeEditSettings = generateFakeEditSettings(mediaFilePaths.size)
-                Log.d("Download button", "starting download")
-                viewModel.showProgressDialog()
-                Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
-
-                viewModel.launch {
-                    val videoEditor = VideoEditor(context, fakeEditSettings)
-                    val mergedVideoPath = videoEditor.trimAndMergeToTempFile(mediaFilePaths, fakeEditSettings)
-
-                    mergedVideoPath?.let {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            // MediaStore (Android 10 and above)
-                            val contentValues = ContentValues().apply {
-                                put(MediaStore.MediaColumns.DISPLAY_NAME, "merged_video_${System.currentTimeMillis()}.mp4")
-                                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-                                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
-                            }
-
-                            val resolver = context.contentResolver
-                            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-                            uri?.let { videoUri ->
-                                resolver.openOutputStream(videoUri)?.use { outputStream ->
-                                    File(it).inputStream().use { inputStream ->
-                                        inputStream.copyTo(outputStream)
-                                    }
-                                    File(it).delete() // Delete temporary file
-                                    println("Video saved to MediaStore: $videoUri")
-                                    Toast.makeText(context, "Video saved to MediaStore: $videoUri", Toast.LENGTH_SHORT).show()
-
-
-                                    // Update ExoPlayer with merged video URI (if needed)
-                                    val mergedMediaItem = MediaItem.fromUri(videoUri)
-                                    exoPlayer.setMediaItem(mergedMediaItem)
-                                    exoPlayer.prepare()
-                                    exoPlayer.playWhenReady = true
-                                }
-                            } ?: run {
-                                println("Error saving to MediaStore: URI is null")
-                            }
-                        } else {
-                            // Legacy Storage (Older Android versions)
-                            // Notify MediaScanner about the new file
-                            MediaScannerConnection.scanFile(
-                                context,
-                                arrayOf(it),
-                                arrayOf("video/mp4"),
-                                null
-                            )
-                            println("Video saved to: $it")
-                            Toast.makeText(context, "Video saved to: $it", Toast.LENGTH_SHORT).show()
-
-                            // Update ExoPlayer with merged video file path (if needed)
-                            val mergedMediaItem = MediaItem.fromUri(Uri.fromFile(File(it)))
-                            exoPlayer.setMediaItem(mergedMediaItem)
-                            exoPlayer.prepare()
-                            exoPlayer.playWhenReady = true
-                        }
-                    } ?: run {
-                        // Handle the case where trimming or merging failed
-                        println("Trimming or merging failed.")
-                    }
-
-                    viewModel.hideProgressDialog()
+                user?.let {
+                    viewModel.fetchAndSaveGeminiResponse(
+                        it.uid,
+                        project.id,
+                        project.promptId,
+                        projectDatabase
+                    )
                 }
             }) {
+                Text("Fetch and Save Edits")
+            }
+
+            // Apply Firestore Edits Button
+            Button(onClick = {
+                user?.let {
+                    viewModel.fetchAndApplyFirestoreEdits(
+                        it.uid,
+                        project.id,
+                        project.promptId ?: "",
+                        project.mediaNames,
+                        context
+                    )
+                }
+            }) {
+                Text("Apply Firestore Edits")
+            }
+
+            // Download Final Video Button
+            Button(
+                onClick = {
+                    viewModel.showProgressDialog()
+                    Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
+
+                    viewModel.launch {
+                        val videoEditor = VideoEditor()
+                        val mergeResult = videoEditor.trimAndMergeToTempFile(
+                            context,
+                            editSettings,
+                            project.mediaNames // Pass the mediaNameMap
+                        )
+
+                        mergeResult.onSuccess { mergedVideoPath ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                // MediaStore (Android 10 and above)
+                                val contentValues = ContentValues().apply {
+                                    put(
+                                        MediaStore.MediaColumns.DISPLAY_NAME,
+                                        "merged_video_${System.currentTimeMillis()}.mp4"
+                                    )
+                                    put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                                    put(
+                                        MediaStore.MediaColumns.RELATIVE_PATH,
+                                        Environment.DIRECTORY_MOVIES
+                                    )
+                                }
+
+                                val resolver = context.contentResolver
+                                val uri = resolver.insert(
+                                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                                    contentValues
+                                )
+
+                                uri?.let { videoUri ->
+                                    resolver.openOutputStream(videoUri)?.use { outputStream ->
+                                        File(mergedVideoPath).inputStream().use { inputStream ->
+                                            inputStream.copyTo(outputStream)
+                                        }
+                                        File(mergedVideoPath).delete() // Delete temporary file
+                                        Log.d("VideoEditScreen", "Video saved to MediaStore: $videoUri")
+                                        Toast.makeText(
+                                            context,
+                                            "Video saved to MediaStore: $videoUri",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
+                                        // Update ExoPlayer with merged video URI (if needed)
+                                        val mergedMediaItem = MediaItem.fromUri(videoUri)
+                                        exoPlayer.setMediaItem(mergedMediaItem)
+                                        exoPlayer.prepare()
+                                        exoPlayer.playWhenReady = true
+                                    }
+                                } ?: run {
+                                    Log.e("VideoEditScreen", "Error saving to MediaStore: URI is null")
+                                    Toast.makeText(
+                                        context,
+                                        "Error saving to MediaStore",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } else {
+                                // Legacy Storage (Older Android versions)
+                                MediaScannerConnection.scanFile(
+                                    context,
+                                    arrayOf(mergedVideoPath), // Pass the file path directly
+                                    arrayOf("video/mp4"),
+                                    null
+                                )
+                                Log.d("VideoEditScreen", "Video saved to: $mergedVideoPath")
+                                Toast.makeText(
+                                    context,
+                                    "Video saved to: $mergedVideoPath",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                // Update ExoPlayer with merged video file path (if needed)
+                                val mergedMediaItem = MediaItem.fromUri(Uri.fromFile(File(mergedVideoPath)))
+                                exoPlayer.setMediaItem(mergedMediaItem)
+                                exoPlayer.prepare()
+                                exoPlayer.playWhenReady = true
+                            }
+                        }.onFailure { exception ->
+                            Log.e("VideoEditScreen", "Error merging videos: ${exception.message}")
+                            Toast.makeText(context, "Error merging videos", Toast.LENGTH_SHORT).show()
+                        }
+
+                        viewModel.hideProgressDialog()
+                    }
+                },
+                enabled = downloadButtonEnabled // Use the downloadButtonEnabled state
+            ) {
                 Text("Download Final Video")
             }
-            Button(onClick = {
-                // Trigger API request to Flask backend
-                user?.let {
-                    val projectId = 3
-                    val promptId = "MnXzLYd8c3IUF4bFeW09"
-                        viewModel.fetchEditSettings(
-                            it.uid,
-                            "I need a cute compilation of my this my small outing where I had ice cream",
-                            projectId,
-                            promptId
-                        )
-                }
-            }) {
-                Text("Process on Server")
-            }
-        }
-    }
 
-    // Release ExoPlayer when the screen is disposed
-    DisposableEffect(Unit) {
-        onDispose {
-            exoPlayer.release()
         }
-    }
+}
 
-    if (showProgressDialog) {
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("Processing Video") },
-            text = { Text("Please wait...") },
-            confirmButton = { }
-        )
+// Release ExoPlayer when the screen is disposed
+DisposableEffect(Unit) {
+    onDispose {
+        exoPlayer.release()
     }
+}
+
+if (showProgressDialog) {
+    AlertDialog(
+        onDismissRequest = { },
+        title = { Text("Processing Video") },
+        text = { Text("Please wait...") },
+        confirmButton = { }
+    )
+}
 }
 
 @Composable
@@ -262,13 +305,23 @@ fun generateFakeEditSettings(numVideos: Int): EditSettings {
 
         val effects = mutableListOf<MediaEffect>()
         if (random.nextBoolean()) {
-            effects.add(MediaEffect(name = "brightness", adjustment = listOf(random.nextFloat() - 0.5f)))
+            effects.add(
+                MediaEffect(
+                    name = "brightness",
+                    adjustment = listOf(random.nextFloat() - 0.5f)
+                )
+            )
         }
         if (random.nextBoolean()) {
             effects.add(MediaEffect(name = "contrast", adjustment = listOf(random.nextFloat())))
         }
         if (random.nextBoolean()) {
-            effects.add(MediaEffect(name = "saturation", adjustment = listOf(random.nextFloat() + 0.5f)))
+            effects.add(
+                MediaEffect(
+                    name = "saturation",
+                    adjustment = listOf(random.nextFloat() + 0.5f)
+                )
+            )
         }
 
         val textOverlay = if (random.nextBoolean()) {

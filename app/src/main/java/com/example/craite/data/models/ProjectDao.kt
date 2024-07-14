@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.example.craite.data.GeminiResponse
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -36,4 +37,7 @@ interface ProjectDao {
 
     @Query("UPDATE Project SET prompt = :prompt, promptId = :promptId WHERE id = :projectId")
     suspend fun updatePromptData(projectId: Int, prompt: String, promptId: String)
+
+    @Query("UPDATE Project SET geminiResponse = :geminiResponse WHERE id = :projectId")
+    suspend fun updateGeminiResponse(projectId: Int, geminiResponse: GeminiResponse)
 }
