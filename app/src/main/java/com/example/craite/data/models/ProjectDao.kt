@@ -40,4 +40,7 @@ interface ProjectDao {
 
     @Query("UPDATE Project SET geminiResponse = :geminiResponse WHERE id = :projectId")
     suspend fun updateGeminiResponse(projectId: Int, geminiResponse: GeminiResponse)
+
+    @Query("UPDATE Project SET mediaNames = :mediaNames WHERE id = :projectId")
+    suspend fun updateMediaNames(projectId: Int, mediaNames: Map<String, String>)
 }

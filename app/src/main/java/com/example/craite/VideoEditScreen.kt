@@ -138,6 +138,8 @@ fun VideoEditScreen(
 
             // Apply Firestore Edits Button
             Button(onClick = {
+                Log.d("VideoEditScreen", project.mediaNames.toString())
+                Log.d("VideoEditScreen", project.media.toString())
                 user?.let {
                     viewModel.fetchAndApplyFirestoreEdits(
                         it.uid,

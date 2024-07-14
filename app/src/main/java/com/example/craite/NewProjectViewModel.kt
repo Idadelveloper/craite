@@ -115,6 +115,12 @@ class NewProjectViewModel: ViewModel() {
                             // store key-value pairs of uploaded video names and uris
                             project.mediaNames = videoNames
                             Log.d("VideoNames", "Video names: $videoNames")
+
+                            // Update the project in the Room database
+                            viewModelScope.launch {
+                                projectDao.updateMediaNames(projectId, videoNames)
+                                Log.d("NewProjectViewModel", "Media names updated in Room database")
+                            }
                         }.addOnFailureListener { exception ->
                             Log.e("FirebaseStorage", "Upload failed: ${exception.message}")
                             // Handle the failure (e.g., show an error message)
