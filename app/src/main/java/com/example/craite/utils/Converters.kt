@@ -17,7 +17,7 @@ import java.io.ByteArrayOutputStream
 
 class ProjectTypeConverters {
 
-    val gson = Gson()
+    private val gson = Gson()
 
     @TypeConverter
     fun fromUriList(uris: List<Uri>): String {
@@ -34,20 +34,14 @@ class ProjectTypeConverters {
 
     @TypeConverter
     fun fromMapString(map: Map<String, String>?): String {
-        return map?.entries?.joinToString(";") { "${it.key}={it.value}" } ?: ""
+        return gson.toJson(map)
     }
 
     @TypeConverter
     fun toMapString(value: String?): Map<String, String>? {
-        if (value == null) return null
-        val map = mutableMapOf<String, String>()
-        value.split(";").forEach { entry ->
-            val parts = entry.split("=")
-            if (parts.size == 2) {
-                map[parts[0]] = parts[1]
-            }
-        }
-        return map
+        if (value == null) return emptyMap()
+        val type = object : TypeToken<Map<String, String>>() {}.type
+        return gson.fromJson(value, type)
     }
 
     @TypeConverter

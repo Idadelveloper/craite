@@ -48,21 +48,28 @@ class VideoEditor {
                 async {
                     val videoName = videoEdit.video_name
                     val filePath = mediaNameMap[videoName]
+                    Log.d("VideoEditor", "Processing video at: $filePath")
                     filePath?.let {
-                        val inputUri = Uri.fromFile(File(it))
-                        val outputFile =
-                            File.createTempFile("edited_$index", ".mp4", context.cacheDir)
-                        val outputPath = outputFile.absolutePath
+                        val file = File(it)
+                        if (file.exists()) {
+                            val inputUri = Uri.fromFile(file)
+                            val outputFile =
+                                File.createTempFile("edited_$index", ".mp4", context.cacheDir)
+                            val outputPath = outputFile.absolutePath
 
-                        trimAndApplyEditsToVideo(
-                            context,
-                            inputUri,
-                            outputPath,
-                            videoEdit.start_time,
-                            videoEdit.end_time,
-                            mapMediaEffectsToEffects(videoEdit.effects).toMutableList(), // Make effects mutable
-                            videoEdit.text
-                        )
+                            trimAndApplyEditsToVideo(
+                                context,
+                                inputUri,
+                                outputPath,
+                                videoEdit.start_time,
+                                videoEdit.end_time,
+                                mapMediaEffectsToEffects(videoEdit.effects).toMutableList(), // Make effects mutable
+                                videoEdit.text
+                            )
+                        } else {
+                            Log.e("VideoEditor", "File not found: $filePath")
+                            null
+                        }
                     }
                 }
             }

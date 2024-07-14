@@ -73,6 +73,9 @@ fun VideoEditScreen(
     val showProgressDialog by viewModel.showProgressDialog.collectAsState()
     val downloadButtonEnabled by viewModel.downloadButtonEnabled.collectAsState()
 
+    Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
+    Log.d("VideoEditScreen", "MediaItems: ${project.media}")
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()

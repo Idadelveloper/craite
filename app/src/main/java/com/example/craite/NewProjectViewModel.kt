@@ -108,7 +108,7 @@ class NewProjectViewModel: ViewModel() {
                     val fileUri = Uri.fromFile(File(filePath))
                     fileRef.putFile(fileUri)
                         .addOnSuccessListener {
-                            videoNames[fileName] = filePath
+                            videoNames[fileName] = filePaths[index]
                             Log.d("FirebaseStorage", "File uploaded: ${fileRef.path}")
                             Toast.makeText(context, "File uploaded: ${fileRef.path}", Toast.LENGTH_SHORT).show()
 
