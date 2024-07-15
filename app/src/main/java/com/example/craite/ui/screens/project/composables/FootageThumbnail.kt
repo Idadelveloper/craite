@@ -27,7 +27,7 @@ fun FootageThumbnail(modifier: Modifier = Modifier) {
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .clip(shape = RoundedCornerShape(16.dp))
-                .aspectRatio(11 / 16f)
+                .aspectRatio(11 / 16f).then(modifier)
         )
         Text(text = "Video Title", style = MaterialTheme.typography.bodySmall)
 

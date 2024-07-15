@@ -17,7 +17,7 @@ import com.example.craite.ui.theme.AppColor
 
 @Composable
 fun GradientImageBackground(modifier: Modifier = Modifier, painter: Painter, contentDescription: String?, gradientColor: Color = AppColor().black) {
-    Box(modifier = modifier){
+    Box(modifier = Modifier.then(modifier)){
 
     Image(
         modifier = Modifier.fillMaxSize(),

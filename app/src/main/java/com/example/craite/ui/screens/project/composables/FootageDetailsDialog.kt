@@ -27,7 +27,7 @@ fun FootageDetailsDialog(modifier: Modifier = Modifier) {
 
             Column(
                 modifier = Modifier.fillMaxWidth().clip(shape = RoundedCornerShape(24.dp)).background(
-                    MaterialTheme.colorScheme.background).padding(16.dp),
+                    MaterialTheme.colorScheme.background).padding(16.dp).then(modifier),
                 verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 FootageThumbnail()
