@@ -143,6 +143,19 @@ dependencies {
     // kotlin coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 
+    //Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended")
+
+    //Fluent UI
+   // implementation("com.microsoft.fluentui:FluentUIAndroid:0.2.9")
+    implementation("com.microsoft.fluentui:fluentui_icons:0.2.0")
+
+
+    //Google Fonts
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
+
+
+
     implementation(libs.material3)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

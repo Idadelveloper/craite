@@ -22,6 +22,7 @@ import androidx.room.Room
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.home.HomeScreenNew
 import com.example.craite.ui.screens.project.CreateProjectScreen
+import com.example.craite.ui.screens.video.VideoEditorScreen
 import com.example.craite.ui.theme.CraiteTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -83,7 +84,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
 
     NavHost(
         navController = navController,
-        startDestination = "project",
+        startDestination = "video_editor",
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
@@ -96,6 +97,9 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
         }
         composable("project") {
             CreateProjectScreen()
+        }
+        composable("video_editor") {
+            VideoEditorScreen()
         }
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context, user = user)

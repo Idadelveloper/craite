@@ -39,7 +39,7 @@ var value by remember {
     }
 ///Todo: Flesh out the implementation of this text field
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(modifier),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium )
