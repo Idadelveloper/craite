@@ -30,6 +30,13 @@ fun CraiteTextField(modifier: Modifier = Modifier, label: String, hintText: Stri
 var value by remember {
     mutableStateOf(TextFieldValue(""))
 }
+
+    var borderRadius= 28.0
+    if (minLines ==1){
+        borderRadius = 28.0
+    } else {
+        borderRadius = 20.0
+    }
 ///Todo: Flesh out the implementation of this text field
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -50,7 +57,7 @@ var value by remember {
                 .padding(0.dp)
 
            ,
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(borderRadius.dp),
             singleLine = minLines == 1,
             minLines = minLines,
             colors = TextFieldDefaults.colors(
