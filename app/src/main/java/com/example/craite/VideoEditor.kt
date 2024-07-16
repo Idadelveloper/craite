@@ -12,6 +12,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.OverlayEffect
+import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -56,6 +57,11 @@ class VideoEditor {
                             val outputFile =
                                 File.createTempFile("edited_$index", ".mp4", context.cacheDir)
                             val outputPath = outputFile.absolutePath
+                            Log.d("VideoEditor", "Text: ${videoEdit.text}")
+                            Log.d("VideoEditor", "Effects: ${videoEdit.effects}")
+                            Log.d("VideoEditor", "Start Time: ${videoEdit.start_time}")
+                            Log.d("VideoEditor", "End Time: ${videoEdit.end_time}")
+                            Log.d("Video Editor", "Edit Settings: $editSettings")
 
                             trimAndApplyEditsToVideo(
                                 context,
@@ -132,7 +138,7 @@ class VideoEditor {
                 val textureOverlays = textOverlays.map { textOverlay ->
                     videoEffects.addStaticTextOverlay(
                         text = textOverlay.text,
-                        fontSize = textOverlay.font_size,
+                        fontSize = 30,
                         textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
                         backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
                     )
@@ -140,8 +146,11 @@ class VideoEditor {
 
                 // Add OverlayEffect to the effects list
                 if (textureOverlays.isNotEmpty()) {
-                    effects += OverlayEffect(ImmutableList.of(textureOverlays[0])) // Use += to add to the mutable list
+                    for (overlay in textureOverlays) {
+                        effects += OverlayEffect(ImmutableList.of(overlay))
+                    }
                 }
+                Log.d("VideoEditor", "Text Overlays: $textureOverlays")
 
                 editedMediaItem = EditedMediaItem.Builder(mediaItemBuilder.build())
                     .setEffects(
