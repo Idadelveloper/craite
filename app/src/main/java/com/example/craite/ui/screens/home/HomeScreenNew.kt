@@ -55,6 +55,7 @@ fun HomeScreenNew( ) {
     Scaffold(
 
             containerColor = MaterialTheme.colorScheme.background
+        , modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
             Box(
               modifier = Modifier.fillMaxSize(),

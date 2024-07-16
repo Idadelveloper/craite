@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -21,20 +24,31 @@ import com.example.craite.ui.screens.composables.CraiteTextField
 @Composable
 fun FootageDetailsDialog(modifier: Modifier = Modifier) {
 
+    val videoDescriptionValue = remember {
+        mutableStateOf(TextFieldValue())
+    }
     Dialog(
 
         onDismissRequest = { /*TODO*/ }, properties = DialogProperties(), content = {
 
             Column(
-                modifier = Modifier.fillMaxWidth().clip(shape = RoundedCornerShape(24.dp)).background(
-                    MaterialTheme.colorScheme.background).padding(16.dp).then(modifier),
-                verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape = RoundedCornerShape(24.dp))
+                    .background(
+                        MaterialTheme.colorScheme.background
+                    )
+                    .padding(16.dp)
+                    .then(modifier),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 FootageThumbnail()
                 CraiteTextField(
                     label = "Video Content",
                     hintText = "Video Description",
-                    minLines = 3
+                    minLines = 3,
+                    onValueChanged = { videoDescriptionValue.value = it }
                 )
             }
         })
