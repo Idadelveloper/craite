@@ -197,6 +197,7 @@ class NewProjectViewModel: ViewModel() {
                             )
                             // Handle the error appropriately (e.g., show a message to the user)
                         }
+
                     }
                 }
         }

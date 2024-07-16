@@ -40,11 +40,11 @@ class VideoEditor {
         editSettings: EditSettings,
         mediaNameMap: Map<String, String>
     ): Result<String> = runCatching {
-        val editedMediaItems = mutableListOf<EditedMediaItem>()
+        // Sort video edits by ID to ensure correct order
+        val sortedVideoEdits = editSettings.video_edits.sortedBy { it.id }
 
-        // Trim and apply edits to each video based on editSettings
-        coroutineScope {
-            val deferredEdits = editSettings.video_edits.mapIndexed { index, videoEdit ->
+        val editedMediaItems = coroutineScope {
+            sortedVideoEdits.mapIndexed { index, videoEdit ->
                 async {
                     val videoName = videoEdit.video_name
                     val filePath = mediaNameMap[videoName]
@@ -72,27 +72,17 @@ class VideoEditor {
                         }
                     }
                 }
-            }
-            editedMediaItems.addAll(deferredEdits.awaitAll().filterNotNull()) // Filter out null items
-            if (editedMediaItems.any { false }) {
-                Log.e("VideoEditor", "Error: Some EditedMediaItem objects are null")
-                // Handle the error appropriately (e.g., show a message to the user)
-            }
+            }.awaitAll().filterNotNull() // Filter out null results directly
         }
 
-        Log.d("VideoEditor", "Edited Media Items: $editedMediaItems") // Log the edited items
-        Log.d("VideoEditor", "Media Name Map: $mediaNameMap") // Log the media name map
-
-        // Merge the trimmed and edited videos
         val tempFile = withContext(Dispatchers.IO) {
             File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
         }
-        val tempFilePath = tempFile.absolutePath
 
-        if (!mergeVideos(context, editedMediaItems, tempFilePath)) {
+        if (!mergeVideos(context, editedMediaItems, tempFile.absolutePath)) {
             throw Exception("Video merging failed")
         }
-        tempFilePath
+        tempFile.absolutePath
     }
 
     @OptIn(UnstableApi::class)

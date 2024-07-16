@@ -2,11 +2,14 @@ package com.example.craite
 
 import android.annotation.SuppressLint
 import android.graphics.Matrix
+import android.graphics.Typeface
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.TextPaint
 import android.text.style.AbsoluteSizeSpan
 import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
+import android.text.style.MetricAffectingSpan
 import androidx.annotation.OptIn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -103,7 +106,6 @@ class  VideoEffects {
         hdrLuminanceMultiplier: Float = 1.0f // Luminance multiplier for HDR frames
     ): TextOverlay {
         val spannableText = SpannableString(text)
-        // Apply any text styling to spannableText here if needed
 
         val overlaySettings = OverlaySettings.Builder()
             .setAlphaScale(alphaScale)
@@ -139,4 +141,15 @@ class  VideoEffects {
         return TextOverlay.createStaticTextOverlay(spannableText, overlaySettings)
     }
 
+}
+
+class TypefaceSpan(private val typeface: Typeface) : MetricAffectingSpan() {
+
+    override fun updateMeasureState(textPaint: TextPaint) {
+        textPaint.typeface = typeface
+    }
+
+    override fun updateDrawState(textPaint: TextPaint) {
+        textPaint.typeface = typeface
+    }
 }

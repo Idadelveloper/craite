@@ -77,15 +77,13 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
                             Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
                             result.data?.let { updateEditSettings(it) }
                         }
-
-                        is GeminiResult.Error -> {
+                        is GeminiResult.Error -> { // Handle the Error case
                             Log.e(
                                 "VideoEditViewModel",
                                 "Error fetching edit settings: ${result.message}"
                             )
-                            // Handle the error (e.g., show a Snackbar)
-                            // You'll need to pass a reference to a Composable function or a View here to display the Snackbar
-                            // Example: showSnackbar { Text("Error fetching edit settings") }
+                            // Handle the error appropriately (e.g., show a Snackbar)
+                            // Example: showSnackbar { Text("Error fetching edit settings: ${result.message}") }
                         }
                     }
                 }

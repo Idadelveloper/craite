@@ -75,6 +75,7 @@ fun VideoEditScreen(
 
     Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
     Log.d("VideoEditScreen", "MediaItems: ${project.media}")
+    Log.d("VideoEditScreen", "PromptId: ${project.promptId}")
 
     Scaffold(
         modifier = Modifier
