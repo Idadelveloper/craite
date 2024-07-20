@@ -1,6 +1,5 @@
 package com.example.craite.data.models
 
-import android.net.Uri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.craite.data.EditSettings
@@ -17,5 +16,23 @@ data class Project(
     var promptId: String? = null,
     var isProcessing: Boolean = false,
     val editingSettings: EditSettings? = null,
-    val geminiResponse: GeminiResponse? = null
-)
+    val geminiResponse: GeminiResponse? = null,
+    val length: String? = null,
+) {
+
+    //ToMap
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "id" to id,
+            "name" to name,
+            "media" to media,
+            "mediaNames" to mediaNames,
+            "prompt" to prompt,
+            "promptId" to promptId,
+            "isProcessing" to isProcessing,
+            "editingSettings" to editingSettings?.toMap(), // Assuming EditSettingsalso has a toMap()
+            "geminiResponse" to geminiResponse?.toMap(), // Assuming GeminiResponse also has a toMap()
+            "length" to length,
+        )
+    }
+}

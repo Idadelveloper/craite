@@ -8,13 +8,11 @@ import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.semantics.text
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.OverlayEffect
-import androidx.media3.effect.TextOverlay
 import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
@@ -32,11 +30,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import okhttp3.internal.immutableListOf
 import java.io.File
 import kotlin.coroutines.resume
-import kotlin.text.forEach
-import kotlin.text.toLong
 
 class VideoEditor(private val context: Context, private val editSettings: EditSettings) {
     private val videoEffects = VideoEffects()
@@ -57,7 +52,7 @@ class VideoEditor(private val context: Context, private val editSettings: EditSe
                 val inputUri = Uri.fromFile(File(videoFilePaths[i]))
                 val outputFile = File.createTempFile("edited_$i", ".mp4", context.cacheDir)
                 val outputPath = outputFile.absolutePath
-                val videoEdit = editSettings.video_edits.getOrNull(i)
+                val videoEdit = editSettings.videoEdits.getOrNull(i)
 
                 deferredEdits.add(async {
                     trimAndApplyEditsToVideo(inputUri, outputPath, videoEdit)
@@ -191,8 +186,8 @@ class VideoEditor(private val context: Context, private val editSettings: EditSe
                     // Apply trimming based on startTime and endTime
                     mediaItemBuilder.setClippingConfiguration(
                         ClippingConfiguration.Builder()
-                            .setStartPositionMs((it.start_time * 1000).toLong())
-                            .setEndPositionMs((it.end_time * 1000).toLong())
+                            .setStartPositionMs((it.startTime * 1000).toLong())
+                            .setEndPositionMs((it.endTime * 1000).toLong())
                             .build()
                     )
 

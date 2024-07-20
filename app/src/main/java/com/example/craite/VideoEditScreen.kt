@@ -49,7 +49,6 @@ import com.google.firebase.auth.FirebaseUser
 import java.io.File
 import java.io.InputStream
 import kotlin.random.Random
-import kotlin.random.nextInt
 import kotlin.text.padStart
 import kotlin.text.toString
 
@@ -290,15 +289,15 @@ fun generateFakeEditSettings(numVideos: Int): EditSettings {
         videoEdits.add(
             VideoEdit(
                 effects = effects,
-                end_time = endTime,
+                endTime = endTime,
                 id = i,
-                start_time = startTime,
+                startTime = startTime,
                 text = textOverlay,
                 transition = transition,
-                video_name = "video$i.mp4"
+                videoName = "video$i.mp4"
             )
         )
     }
 
-    return EditSettings(video_edits = videoEdits)
+    return EditSettings(videoEdits = videoEdits)
 }

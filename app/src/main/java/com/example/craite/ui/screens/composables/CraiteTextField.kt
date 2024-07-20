@@ -31,11 +31,11 @@ fun CraiteTextField(
         mutableStateOf(TextFieldValue())
     }
 
-    var borderRadius = 28.0
-    if (minLines == 1) {
-        borderRadius = 28.0
+
+   val borderRadius = if (minLines == 1) {
+        28.0
     } else {
-        borderRadius = 20.0
+        20.0
     }
 ///Todo: Flesh out the implementation of this text field
     Column(
