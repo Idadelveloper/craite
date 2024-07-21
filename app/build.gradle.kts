@@ -8,6 +8,7 @@ plugins {
     kotlin("plugin.serialization") version "2.0.0"
     alias(libs.plugins.google.gms.google.services)
     id("androidx.navigation.safeargs")
+    id("androidx.room")
 }
 
 android {
@@ -25,7 +26,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        room {
+            schemaDirectory("$projectDir/schemas")
+        }
     }
+
 
     buildTypes {
         release {
