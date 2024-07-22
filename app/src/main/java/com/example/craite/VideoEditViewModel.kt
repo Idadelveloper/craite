@@ -127,15 +127,6 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
                                             "VideoEditViewModel",
                                             "Gemini response saved to Room database"
                                         )
-                                        Log.d("VideoEditViewModel", "Edit settings: $settings")
-                                        projectDatabase.projectDao()
-                                            .updateEditingSettings(projectId, settings.toString())
-                                        Log.d("VideoEditViewModel", "Edit settings saved to Room database")
-                                        updateEditSettings(settings) // Update UI state after saving
-                                        Log.d(
-                                            "VideoEditViewModel",
-                                            "Edit settings updated: $settings"
-                                        )
                                     }
                                 }
                             } else {
