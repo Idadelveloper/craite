@@ -42,7 +42,7 @@ import kotlin.random.Random
 fun HomeScreenNew(modifier: Modifier = Modifier) {
     //Todo:Replace with List of Projects
     val projectList = (1..10).map {
-        Project(name = "Project $it", media = emptyList(), length = "00:${it}")
+        Project(name = "Project $it", media = emptyList())
     }
 
     val localConfiguration: Configuration = LocalConfiguration.current

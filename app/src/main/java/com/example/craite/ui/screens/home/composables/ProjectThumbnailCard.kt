@@ -79,7 +79,7 @@ fun ProjectThumbnailCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = null)
-                Text(project.length ?: "", style = MaterialTheme.typography.bodySmall)
+                Text("00:00", style = MaterialTheme.typography.bodySmall)
             }
         }
         Text(text = project.name, style = MaterialTheme.typography.bodyMedium)

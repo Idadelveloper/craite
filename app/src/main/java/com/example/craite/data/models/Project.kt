@@ -18,5 +18,4 @@ data class Project(
     var isProcessing: Boolean = false,
     val editingSettings: EditSettings? = null,
     val geminiResponse: GeminiResponse? = null,
-    val length: String? = null
 )
