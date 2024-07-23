@@ -17,5 +17,5 @@ data class Project(
     var promptId: String? = null,
     var isProcessing: Boolean = false,
     val editingSettings: EditSettings? = null,
-    val geminiResponse: GeminiResponse? = null
+    val geminiResponse: GeminiResponse? = null,
 )
