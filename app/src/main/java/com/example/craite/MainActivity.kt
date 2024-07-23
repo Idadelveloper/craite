@@ -78,8 +78,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
     val db = Room.databaseBuilder(
         context,
         ProjectDatabase::class.java, "project_database"
-    ).fallbackToDestructiveMigration()
-        .build()
+    ).build()
 
     val user by remember { mutableStateOf(currentUser) }
 
@@ -94,7 +93,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             HomeScreen(navController = navController, db = db, modifier = Modifier, user = user)
         }
         composable("home") {
-            HomeScreenNew()
+            HomeScreenNew(navController = navController, db = db, user = user)
         }
         composable("project") {
             CreateProjectScreen()
