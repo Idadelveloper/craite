@@ -2,12 +2,14 @@ package com.example.craite.ui.screens.new_project
 
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,6 +17,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.activity.result.launch
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +58,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.craite.R
@@ -64,7 +68,12 @@ import com.example.craite.ui.screens.composables.GradientImageBackground
 import com.example.craite.ui.screens.new_project.composables.FootageThumbnail
 import com.example.craite.ui.theme.AppColor
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.OutputStream
+import kotlin.text.clear
 
 
 //@Preview(showBackground = true)
@@ -92,9 +101,11 @@ fun NewProjectScreen(
         if (uris.isNotEmpty()) {
             selectedMedia = uris
             footagesNotSelected = false
-            thumbnailData = uris.map { uri ->
-                getThumbnailUriFromVideo(context, uri)
+            newProjectViewModel.viewModelScope.launch {
+                thumbnailData = uris.map { uri ->
+                    getThumbnailUriFromVideo(context, uri)
                 }
+            }
             }
         }
 
@@ -104,7 +115,8 @@ fun NewProjectScreen(
     LaunchedEffect(key1 = projectCreationInitiated) {
         if (projectCreationInitiated) {
             val projectId = projectDatabase.projectDao().getLastInsertedProject().id
-            navController.navigate("video_edit_screen/$projectId")
+//            navController.navigate("video_edit_screen/$projectId")
+            navController.navigate("video_editor_screen")
         }
     }
 
@@ -245,29 +257,56 @@ fun NewProjectScreen(
     }
 }
 
-fun getThumbnailUriFromVideo(context: Context, videoUri: Uri): Pair<Uri?, String?> {
+suspend fun getThumbnailUriFromVideo(context: Context, videoUri: Uri): Pair<Uri?, String?> {
     return try {
-        val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(context, videoUri)
-        val bitmap = retriever.frameAtTime
-        val videoName = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-            ?: getFileNameFromUri(context, videoUri)
-        retriever.release()
-        Log.d("Thumbnail", "Video name: $videoName")
+        withContext(Dispatchers.IO) {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, videoUri)
+            val bitmap = retriever.frameAtTime
+            val videoName = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                ?: getFileNameFromUri(context, videoUri)
+            retriever.release()
 
-        val thumbnailUri = bitmap?.let {
-            val bytes = ByteArrayOutputStream()
-            it.compress(Bitmap.CompressFormat.JPEG, 90, bytes)
-            val path = MediaStore.Images.Media.insertImage(
-                context.contentResolver, it, "Title", null
-            )
-            Uri.parse(path)
+            val thumbnailUri = bitmap?.let {
+                val imageName = "thumbnail_${System.currentTimeMillis()}.jpg"
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, imageName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                        put(MediaStore.MediaColumns.IS_PENDING, 1) // Mark as pending
+                    }
+                }
+
+                val resolver = context.contentResolver
+                var imageUri: Uri? = null
+                var outputStream: OutputStream? = null
+
+                try {
+                    imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    outputStream = imageUri?.let { resolver.openOutputStream(it) }
+                    if (outputStream != null) {
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                    }
+                } catch (e: Exception) {
+                    Log.e("ThumbnailError", "Failed to create thumbnail: ${e.message}", e)
+                } finally {
+                    outputStream?.close()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        contentValues.clear()
+                        contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                        imageUri?.let { resolver.update(it, contentValues, null, null) }
+                    }
+                }
+
+                imageUri
+            }
+
+            Pair(thumbnailUri, videoName)
         }
-
-        Pair(thumbnailUri, videoName) // Return both thumbnail URI and video name
     } catch (e: Exception) {
-        Log.e("ThumbnailError", "Error getting thumbnail: ${e.message}")
-        Pair(null, null) // Return nulls if extraction fails
+        Log.e("ThumbnailError", "Error getting thumbnail: ${e.message}", e)
+        Pair(null, null)
     }
 }
 

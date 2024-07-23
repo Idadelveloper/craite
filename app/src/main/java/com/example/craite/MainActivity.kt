@@ -22,6 +22,7 @@ import androidx.room.Room
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.home.HomeScreenNew
 import com.example.craite.ui.screens.new_project.NewProjectScreen
+import com.example.craite.ui.screens.video.VideoEditorScreen
 import com.example.craite.ui.theme.CraiteTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -98,6 +99,9 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
         }
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context, user = user)
+        }
+        composable("video_editor_screen") {
+            VideoEditorScreen()
         }
         composable(
             route = "video_edit_screen/{projectId}",
