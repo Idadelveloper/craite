@@ -90,7 +90,7 @@ fun HomeScreenNew(
                         Text(text = "Something", style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.padding(16.dp))
                         Button(
-                            onClick = { /*TODO: Navigate to New Project Screen*/ },
+                            onClick = { navController.navigate("project") },
                             contentPadding = PaddingValues(32.dp),
                             shape = RoundedCornerShape(28.dp),
                         ) {

@@ -1,6 +1,7 @@
-package com.example.craite.ui.screens.project
+package com.example.craite.ui.screens.new_project
 
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,17 +29,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.craite.R
+import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.composables.CraiteTextField
 import com.example.craite.ui.screens.composables.GradientImageBackground
-import com.example.craite.ui.screens.project.composables.FootageThumbnail
+import com.example.craite.ui.screens.new_project.composables.FootageThumbnail
+import com.google.firebase.auth.FirebaseUser
 
 
-@Preview(showBackground = true)
+//@Preview(showBackground = true)
 @Composable
-fun CreateProjectScreen(modifier: Modifier = Modifier) {
+fun CreateProjectScreen(
+    navController: NavController,
+    projectDatabase: ProjectDatabase,
+    context: Context,
+    user: FirebaseUser?
+) {
 
     val projectNameValue = remember {
         mutableStateOf(TextFieldValue() )
@@ -61,7 +69,7 @@ fun CreateProjectScreen(modifier: Modifier = Modifier) {
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Spacer(modifier = modifier.fillMaxHeight(.2f))
+                Spacer(modifier = Modifier.fillMaxHeight(.2f))
                 Text(
                     text = "Create Project",
                     style = MaterialTheme.typography.headlineSmall,

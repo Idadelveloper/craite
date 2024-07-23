@@ -1,4 +1,4 @@
-package com.example.craite.ui.screens.project.composables
+package com.example.craite.ui.screens.new_project.composables
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement

@@ -12,7 +12,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,10 +19,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.room.Room
-import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.home.HomeScreenNew
-import com.example.craite.ui.screens.project.CreateProjectScreen
+import com.example.craite.ui.screens.new_project.CreateProjectScreen
 import com.example.craite.ui.theme.CraiteTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -96,7 +94,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             HomeScreenNew(navController = navController, db = db, user = user)
         }
         composable("project") {
-            CreateProjectScreen()
+            CreateProjectScreen(navController = navController, projectDatabase = db, context = context, user = user)
         }
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context, user = user)
