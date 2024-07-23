@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 4,
-    "identityHash": "02723419b80c2e8b525ac78047e24a5d",
+    "version": 1,
+    "identityHash": "bd88a1ac2d505e8d99a8d348a4b4899c",
     "entities": [
       {
         "tableName": "Project",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `media` TEXT NOT NULL, `mediaNames` TEXT NOT NULL, `prompt` TEXT, `promptId` TEXT, `isProcessing` INTEGER NOT NULL, `editingSettings` TEXT, `geminiResponse` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `media` TEXT NOT NULL, `mediaNames` TEXT NOT NULL, `prompt` TEXT, `promptId` TEXT, `isProcessing` INTEGER NOT NULL, `thumbnailPath` TEXT, `projectDuration` TEXT, `editingSettings` TEXT, `geminiResponse` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -51,6 +51,18 @@
             "notNull": true
           },
           {
+            "fieldPath": "thumbnailPath",
+            "columnName": "thumbnailPath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "projectDuration",
+            "columnName": "projectDuration",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
             "fieldPath": "editingSettings",
             "columnName": "editingSettings",
             "affinity": "TEXT",
@@ -76,7 +88,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '02723419b80c2e8b525ac78047e24a5d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bd88a1ac2d505e8d99a8d348a4b4899c')"
     ]
   }
 }

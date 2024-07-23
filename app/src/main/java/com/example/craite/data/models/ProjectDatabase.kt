@@ -10,7 +10,7 @@ import com.example.craite.utils.ProjectTypeConverters
 //    autoMigrations = [AutoMigration(from = 3, to = 4)])
 
 
-@Database(entities = [Project::class], version = 4)
+@Database(entities = [Project::class], version = 1)
 @TypeConverters(ProjectTypeConverters::class)
 abstract class ProjectDatabase: RoomDatabase() {
     abstract fun projectDao(): ProjectDao

@@ -116,7 +116,9 @@ fun HomeScreenNew(
                     ) {
                         items(projectList.size) { index ->
                             ProjectThumbnailCard(
-                                onClick = { /*TODO*/ },
+                                onClick = {
+                                    navController.navigate("video_editor_screen")
+                                },
                                 project = projectList[index],
                                 height = Random(index).nextInt(100, 301).toDouble()
                             )

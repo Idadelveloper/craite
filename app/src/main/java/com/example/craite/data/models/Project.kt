@@ -16,6 +16,8 @@ data class Project(
     var prompt: String? = null,
     var promptId: String? = null,
     var isProcessing: Boolean = false,
+    var thumbnailPath: String? = null,
+    var projectDuration: String? = null,
     val editingSettings: EditSettings? = null,
     val geminiResponse: GeminiResponse? = null,
 )
