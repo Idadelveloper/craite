@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
@@ -25,18 +26,11 @@ fun CraiteTextField(
     label: String,
     hintText: String,
     minLines: Int = 1,
-    onValueChanged: (TextFieldValue) -> Unit
+    onValueChanged: (String) -> Unit
 ) {
-    val value by remember {
-        mutableStateOf(TextFieldValue())
-    }
+    var text by remember { mutableStateOf("") }
+    var borderRadius = if (minLines == 1) 28.0 else 20.0
 
-    var borderRadius = 28.0
-    if (minLines == 1) {
-        borderRadius = 28.0
-    } else {
-        borderRadius = 20.0
-    }
 ///Todo: Flesh out the implementation of this text field
     Column(
         modifier = Modifier
@@ -47,11 +41,11 @@ fun CraiteTextField(
         Text(text = label, style = MaterialTheme.typography.bodyMedium)
 
         TextField(
-            value = value,
-            onValueChange = {
-                onValueChanged(it)
+            value = text,
+            onValueChange = { newText ->
+                text = newText
+                onValueChanged(newText)
             },
-
             placeholder = { Text(text = hintText) },
             modifier = Modifier
                 .fillMaxWidth()

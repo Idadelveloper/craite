@@ -1,5 +1,6 @@
 package com.example.craite.ui.screens.new_project.composables
 
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,22 +16,22 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.craite.R
 
-@Preview()
+//@Preview()
 @Composable
-fun FootageThumbnail(modifier: Modifier = Modifier) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.width(100.dp)) {
-        Image(
-            painter = painterResource(id = R.drawable.surfing),
+fun FootageThumbnail(modifier: Modifier = Modifier, uri: Uri, videoName: String? = null) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = modifier) {
+        // Replace Image with a Composable that can load images from a URI
+        AsyncImage(
+            model = uri,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .clip(shape = RoundedCornerShape(16.dp))
-                .aspectRatio(11 / 16f).then(modifier)
+                .aspectRatio(11 / 16f)
         )
-        Text(text = "Video Title", style = MaterialTheme.typography.bodySmall)
-
-
+        Text(text = videoName ?: "Video Title", style = MaterialTheme.typography.bodySmall)
     }
 }
