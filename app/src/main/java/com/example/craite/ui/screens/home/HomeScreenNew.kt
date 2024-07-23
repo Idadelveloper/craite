@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -105,24 +107,38 @@ fun HomeScreenNew(
                             .align(Alignment.Start)
                             .padding(all = 16.dp)
                     )
-                    LazyVerticalStaggeredGrid(
-                        modifier = Modifier.height(localConfiguration.screenHeightDp.dp),
+                    if (projectList.isEmpty()) {
+                        Text(
+                            text = "No recent projects",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontStyle = FontStyle.Italic
+                            ),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(all = 16.dp)
 
-                        userScrollEnabled = false,
-                        columns = StaggeredGridCells.Fixed(2),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalItemSpacing = 16.dp
-                    ) {
-                        items(projectList.size) { index ->
-                            ProjectThumbnailCard(
-                                onClick = {
-                                    navController.navigate("video_editor_screen")
-                                },
-                                project = projectList[index],
-                                height = Random(index).nextInt(100, 301).toDouble()
-                            )
+                        )
+                    } else {
+                        LazyVerticalStaggeredGrid(
+                            modifier = Modifier.height(localConfiguration.screenHeightDp.dp),
+
+                            userScrollEnabled = false,
+                            columns = StaggeredGridCells.Fixed(2),
+                            contentPadding = PaddingValues(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalItemSpacing = 16.dp
+                        ) {
+                            items(projectList.size) { index ->
+                                ProjectThumbnailCard(
+                                    onClick = {
+                                        navController.navigate("video_editor_screen")
+                                    },
+                                    project = projectList[index],
+                                    height = Random(index).nextInt(100, 301).toDouble()
+                                )
+                            }
                         }
+
                     }
 
                 }
