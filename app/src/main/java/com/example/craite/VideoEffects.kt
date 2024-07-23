@@ -101,8 +101,8 @@ class  VideoEffects {
         scaleY: Float = 1.0f, // Vertical scaling factor
         overlayFrameAnchorX: Float = 0.5f, // X anchor point within the overlay (0 to 1)
         overlayFrameAnchorY: Float = 0.5f, // Y anchor point within the overlay (0 to 1)
-        backgroundFrameAnchorX: Float = 0.5f, // X anchor point within the background frame (0 to 1)
-        backgroundFrameAnchorY: Float = 0.5f, // Y anchor point within the background frame (0 to 1)
+        backgroundFrameAnchorX: Float = 0.0f, // X anchor point within the background frame (0 to 1)
+        backgroundFrameAnchorY: Float = 0.0f, // Y anchor point within the background frame (0 to 1)
         hdrLuminanceMultiplier: Float = 1.0f // Luminance multiplier for HDR frames
     ): TextOverlay {
         val spannableText = SpannableString(text)

@@ -85,7 +85,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
 
     NavHost(
         navController = navController,
-        startDestination = "project",
+        startDestination = "home",
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()

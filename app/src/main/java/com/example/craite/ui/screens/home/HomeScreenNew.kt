@@ -114,5 +114,3 @@ fun HomeScreenNew(modifier: Modifier = Modifier) {
     }
 }
 
-
-

@@ -65,7 +65,7 @@ fun CreateProjectScreen(modifier: Modifier = Modifier) {
                 Text(
                     text = "Create Project",
                     style = MaterialTheme.typography.headlineSmall,
-                    onTextLayout = null
+//                    onTextLayout = null
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 

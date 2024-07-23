@@ -27,7 +27,12 @@ import kotlinx.coroutines.flow.Flow
 
 
 @Composable
-fun HomeScreen(navController: NavController, modifier: Modifier, db: ProjectDatabase, user: FirebaseUser?) {
+fun HomeScreen(
+    navController: NavController,
+    modifier: Modifier,
+    db: ProjectDatabase,
+    user: FirebaseUser?
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,

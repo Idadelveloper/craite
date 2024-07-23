@@ -138,7 +138,7 @@ class VideoEditor {
                 val textureOverlays = textOverlays.map { textOverlay ->
                     videoEffects.addStaticTextOverlay(
                         text = textOverlay.text,
-                        fontSize = 30,
+                        fontSize = 50,
                         textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
                         backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
                     )
