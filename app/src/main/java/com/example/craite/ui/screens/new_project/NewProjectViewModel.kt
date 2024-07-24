@@ -1,5 +1,6 @@
 package com.example.craite.ui.screens.new_project
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
@@ -118,8 +119,16 @@ class NewProjectViewModel: ViewModel() {
                     }
                 }
 
-                // Upload videos to cloud storage (using file paths)
+                // Calculate total duration
+                val totalDurationMillis = calculateTotalDuration(context, uris)
+                val formattedDuration = formatDuration(totalDurationMillis)
+
+                // Update the project in the Room database with the total duration
                 val projectId = projectDao.getLastInsertedProject().id
+                projectDao.updateProjectDuration(projectId, formattedDuration)
+                Log.d("NewProjectViewModel", "Project duration updated in Room database")
+
+                // Upload videos to cloud storage (using file paths)
                 val userFolderRef = storageRef.child("users/${user.uid}/projects/$projectId/videos")
 
                 val uploadCompletionSource = Tasks.whenAllComplete(filePaths.mapIndexed { index, filePath ->
@@ -247,6 +256,29 @@ class NewProjectViewModel: ViewModel() {
             Log.e("ThumbnailError", "Error getting thumbnail: ${e.message}", e)
             Pair(null, null)
         }
+    }
+
+    private fun calculateTotalDuration(context: Context, uris: List<Uri>): Long {
+        var totalDurationMillis = 0L
+        for (uri in uris) {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, uri)
+            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            durationStr?.toLongOrNull()?.let {
+                totalDurationMillis += it
+            }
+            retriever.release()
+        }
+        return totalDurationMillis
+    }
+
+    @SuppressLint("DefaultLocale")
+    private fun formatDuration(durationMillis: Long): String {
+        val totalSeconds = durationMillis / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        val seconds = totalSeconds % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
     private fun triggerVideoProcessing(userId: String, prompt: String, projectId: Int, promptId: String) {
