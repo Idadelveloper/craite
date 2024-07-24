@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -27,16 +26,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Timeline
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.NavController
-import com.example.craite.VideoEditViewModel
 import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.generateFakeEditSettings
@@ -64,9 +61,20 @@ fun VideoEditorScreen(
     val showProgressDialog by viewModel.showProgressDialog.collectAsState()
     val downloadButtonEnabled by viewModel.downloadButtonEnabled.collectAsState()
 
+    val playbackState = exoPlayer.playbackState
+    val latestPlaybackState = rememberUpdatedState(playbackState)
+    val currentPosition = exoPlayer.currentPosition
+    val latestCurrentPosition = rememberUpdatedState(currentPosition)
+    val duration = exoPlayer.duration
+    val latestDuration = rememberUpdatedState(duration)
+
     Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
     Log.d("VideoEditScreen", "MediaItems: ${project.media}")
     Log.d("VideoEditScreen", "PromptId: ${project.promptId}")
+
+    LaunchedEffect(latestPlaybackState) { // Log playback state changes
+        Log.d("VideoEditorScreen", "Playback State: ${latestPlaybackState.value}")
+    }
 
     Scaffold(
          modifier = Modifier.fillMaxSize(),
@@ -119,7 +127,16 @@ fun VideoEditorScreen(
                 }
 }
             VideoPreview(exoPlayer)
-            PlaybackControls()
+            PlaybackControls(
+                exoPlayer = exoPlayer,
+                playbackState = latestPlaybackState.value,
+                currentPosition = latestCurrentPosition.value,
+                duration = latestDuration.value,
+                onPlayPauseClick = {
+                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                },
+                onSeekForwardClick = { exoPlayer.seekTo(latestCurrentPosition.value + 10000) }
+            )
             Timeline()
 
         }
@@ -129,6 +146,7 @@ fun VideoEditorScreen(
     LaunchedEffect(mediaItemMap) {
         exoPlayer.setMediaItems(mediaItemMap.values.toList())
         exoPlayer.prepare()
+        exoPlayer.play()
     }
 }
 
