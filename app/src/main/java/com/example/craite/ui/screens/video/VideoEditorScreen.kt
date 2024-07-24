@@ -25,8 +25,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,6 +43,7 @@ import com.example.craite.ui.screens.video.composables.PlaybackControls
 import com.example.craite.ui.screens.video.composables.Timeline
 import com.example.craite.ui.screens.video.composables.VideoPreview
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.delay
 import java.io.File
 
 //@Preview(showBackground = true, showSystemUi = true)
@@ -63,10 +66,17 @@ fun VideoEditorScreen(
 
     val playbackState = exoPlayer.playbackState
     val latestPlaybackState = rememberUpdatedState(playbackState)
-    val currentPosition = exoPlayer.currentPosition
-    val latestCurrentPosition = rememberUpdatedState(currentPosition)
-    val duration = exoPlayer.duration
-    val latestDuration = rememberUpdatedState(duration)
+    var currentPosition by remember { mutableStateOf(0L) }
+    var duration by remember { mutableStateOf(0L) }
+
+    // Observe currentPosition and duration
+    LaunchedEffect(exoPlayer) {
+        while (true) {
+            currentPosition = exoPlayer.currentPosition
+            duration = exoPlayer.duration
+            delay(1000)
+        }
+    }
 
     Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
     Log.d("VideoEditScreen", "MediaItems: ${project.media}")
@@ -130,12 +140,12 @@ fun VideoEditorScreen(
             PlaybackControls(
                 exoPlayer = exoPlayer,
                 playbackState = latestPlaybackState.value,
-                currentPosition = latestCurrentPosition.value,
-                duration = latestDuration.value,
+                currentPosition = currentPosition,
+                duration = duration,
                 onPlayPauseClick = {
                     if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                 },
-                onSeekForwardClick = { exoPlayer.seekTo(latestCurrentPosition.value + 10000) }
+                onSeekForwardClick = { exoPlayer.seekTo(currentPosition + 10000) }
             )
             Timeline()
 

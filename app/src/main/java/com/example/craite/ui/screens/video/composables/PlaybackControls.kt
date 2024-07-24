@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.craite.ui.theme.AppColor
+import com.example.craite.utils.Helpers
 
 //@Preview(showBackground = true)
 @Composable
@@ -57,9 +58,9 @@ fun PlaybackControls(
 
         Row() {
             Spacer(modifier = modifier.width(8.dp))
-            Text(text = "00:12", style = MaterialTheme.typography.bodySmall)
+            Text(text = Helpers.formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
             Text(
-                text = "/00:48",
+                text = "/${Helpers.formatTime(duration)}",
                 style = MaterialTheme.typography.bodySmall.copy(color = AppColor().neutral50)
             )
         }
