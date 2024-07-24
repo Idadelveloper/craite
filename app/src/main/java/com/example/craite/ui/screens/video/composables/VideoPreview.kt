@@ -11,20 +11,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.example.craite.R
 
 @Composable
-fun VideoPreview(modifier: Modifier = Modifier) {
-    Box (       modifier = Modifier
-        .fillMaxWidth(.5f)
-        .aspectRatio(9 / 16f)
-        .clip(shape = RoundedCornerShape(24.dp))
-        .then(modifier)){
-        Image(
-            painter = painterResource(id = R.drawable.surfing),
-            contentDescription = "Video Play",
-            contentScale = ContentScale.Crop
-        )
-    }
-
+fun VideoPreview(
+    exoPlayer: ExoPlayer,
+    modifier: Modifier = Modifier
+) {
+    AndroidView(
+        factory = { context ->
+            PlayerView(context).apply {
+                player = exoPlayer
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth(.5f)
+            .aspectRatio(9 / 16f)
+            .clip(shape = RoundedCornerShape(24.dp))
+            .then(modifier)
+    )
 }
