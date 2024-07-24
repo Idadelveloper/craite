@@ -38,6 +38,17 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _downloadButtonEnabled = MutableStateFlow(false)
     val downloadButtonEnabled: StateFlow<Boolean> = _downloadButtonEnabled.asStateFlow()
 
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    fun playVideo() {
+        _isPlaying.value = true
+    }
+
+    fun pauseVideo() {
+        _isPlaying.value = false
+    }
+
     fun showProgressDialog() {
         _showProgressDialog.value = true
     }

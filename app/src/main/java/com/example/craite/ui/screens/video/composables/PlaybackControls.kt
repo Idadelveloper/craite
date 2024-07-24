@@ -39,6 +39,7 @@ import com.example.craite.utils.Helpers
 @Composable
 fun PlaybackControls(
     modifier: Modifier = Modifier,
+    isPlaying: Boolean,
     exoPlayer: ExoPlayer,
     playbackState: Int,
     currentPosition: Long,
@@ -47,7 +48,11 @@ fun PlaybackControls(
     onSeekForwardClick: () -> Unit,
     onSeekBackwardClick: () -> Unit,
 ) {
-    var playIcon by remember { mutableStateOf(Icons.Rounded.PlayArrow) }
+    val playIcon by remember(isPlaying) {
+        derivedStateOf {
+            if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow
+        }
+    }
 
     //Player Controls`
     Row(
@@ -77,18 +82,7 @@ fun PlaybackControls(
 
             }
             IconButton(
-                onClick = {
-                    if (exoPlayer.isPlaying) {
-                        exoPlayer.pause()
-                        playIcon = Icons.Rounded.Pause // Update to Play when paused
-                    } else {
-                        if (exoPlayer.currentPosition >= exoPlayer.duration) {
-                            exoPlayer.seekTo(0)
-                        }
-                        exoPlayer.play()
-                        playIcon = Icons.Rounded.PlayArrow // Update to Pause when playing
-                    }
-                },
+                onClick = onPlayPauseClick,
                 modifier = Modifier
                     .clip(shape = RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)

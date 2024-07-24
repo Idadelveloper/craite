@@ -63,6 +63,7 @@ fun VideoEditorScreen(
     val editSettings by viewModel.uiState.collectAsState()
     val showProgressDialog by viewModel.showProgressDialog.collectAsState()
     val downloadButtonEnabled by viewModel.downloadButtonEnabled.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
 
     val playbackState = exoPlayer.playbackState
     val latestPlaybackState = rememberUpdatedState(playbackState)
@@ -138,12 +139,17 @@ fun VideoEditorScreen(
 }
             VideoPreview(exoPlayer)
             PlaybackControls(
+                isPlaying = isPlaying,
                 exoPlayer = exoPlayer,
                 playbackState = latestPlaybackState.value,
                 currentPosition = currentPosition,
                 duration = duration,
                 onPlayPauseClick = {
-                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                    if (isPlaying) {
+                        viewModel.pauseVideo()
+                    } else {
+                        viewModel.playVideo()
+                    }
                 },
                 onSeekForwardClick = {
                     val newPosition = exoPlayer.currentPosition + 10000
@@ -154,6 +160,18 @@ fun VideoEditorScreen(
                     exoPlayer.seekTo(newPosition.coerceAtLeast(0))
                 }
             )
+            // Trigger ExoPlayer actions based on isPlaying
+            LaunchedEffect(isPlaying) {
+                if (isPlaying) {
+                    if (exoPlayer.currentPosition >= exoPlayer.duration) {
+                        exoPlayer.seekTo(0)
+                    }
+                    exoPlayer.play()
+                } else {
+                    exoPlayer.pause()
+                }
+            }
+
             Timeline()
 
         }
