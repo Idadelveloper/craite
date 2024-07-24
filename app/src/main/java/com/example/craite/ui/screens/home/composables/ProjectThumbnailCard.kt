@@ -1,5 +1,6 @@
 package com.example.craite.ui.screens.home.composables
 
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,8 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.craite.R
 import com.example.craite.data.models.Project
 import com.example.craite.ui.theme.AppColor
@@ -49,13 +53,18 @@ fun ProjectThumbnailCard(
                 )
         ) {
 
-            Image(
-                painter = painterResource(id = R.drawable.surfing),
-                contentDescription = null,
+            // Load thumbnail from database path
+            AsyncImage(
+                model = ImageRequest.Builder(context = LocalContext.current)
+                    .data(project.thumbnailPath?.let { Uri.parse(it) })
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Project Thumbnail",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .height(height.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                error = painterResource(id = R.drawable.surfing)
             )
             Box(
                 modifier = Modifier
