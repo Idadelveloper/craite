@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -67,8 +68,8 @@ fun VideoEditorScreen(
 
     val playbackState = exoPlayer.playbackState
     val latestPlaybackState = rememberUpdatedState(playbackState)
-    var currentPosition by remember { mutableStateOf(0L) }
-    var duration by remember { mutableStateOf(0L) }
+    var currentPosition by remember { mutableLongStateOf(0L) }
+    var duration by remember { mutableLongStateOf(0L) }
 
     // Observe currentPosition and duration
     LaunchedEffect(exoPlayer) {
@@ -88,36 +89,32 @@ fun VideoEditorScreen(
     }
 
     Scaffold(
-         modifier = Modifier.fillMaxSize(),
-    ) {
-        innerPadding ->
+        modifier = Modifier.fillMaxSize(),
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-            
+
         ) {
             Spacer(modifier = Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)) {
-    IconButton(onClick = { /*TODO*/ }) {
-        Icon(imageVector = Icons.AutoMirrored.Rounded.ArrowBack , contentDescription = "Back icon" )
-
-        
-    }
+                IconButton(onClick = { navController.popBackStack() }) { // Navigate back
+                    Icon(imageVector = Icons.AutoMirrored.Rounded.ArrowBack , contentDescription = "Back icon" )
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
                     contentPadding = PaddingValues(horizontal = 12.dp),
-                    onClick = { /*TODO*/ },
+                    onClick = { /* Change video resolution logic */ },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 ) {
-
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "1080p")
                         Spacer(Modifier.width(8.dp))
@@ -125,18 +122,15 @@ fun VideoEditorScreen(
                     }
                 }
                 Button(
-                    onClick = { /*TODO*/ },
+                    onClick = { TODO() }, // Implement export video logic
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-
-
-                        Text(text = "Export")
-
+                    Text(text = "Export")
                 }
-}
+            }
             VideoPreview(exoPlayer)
             PlaybackControls(
                 isPlaying = isPlaying,
@@ -173,7 +167,6 @@ fun VideoEditorScreen(
             }
 
             Timeline()
-
         }
     }
 

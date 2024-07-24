@@ -48,21 +48,19 @@ fun PlaybackControls(
     onSeekForwardClick: () -> Unit,
     onSeekBackwardClick: () -> Unit,
 ) {
-    val playIcon by remember(isPlaying) {
+    val playIcon = remember(isPlaying) {
         derivedStateOf {
             if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow
         }
     }
 
-    //Player Controls`
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .then(modifier)
     ) {
-
-        Row() {
+        Row {
             Spacer(modifier = modifier.width(8.dp))
             Text(text = Helpers.formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
             Text(
@@ -76,27 +74,20 @@ fun PlaybackControls(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.wrapContentWidth()
         ) {
-            IconButton(onClick = { onSeekBackwardClick() }) {
-
+            IconButton(onClick = onSeekBackwardClick) {
                 Icon(imageVector = Icons.Rounded.FastRewind, contentDescription = "Rewind")
-
             }
             IconButton(
                 onClick = onPlayPauseClick,
                 modifier = Modifier
                     .clip(shape = RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .size(height = 48.dp, width = 48.dp),
-
-                ) {
-
-                Icon(imageVector = playIcon, contentDescription = "Play/Pause")
-
+                    .size(48.dp),
+            ) {
+                Icon(imageVector = playIcon.value, contentDescription = "Play/Pause")
             }
-            IconButton(onClick = { onSeekForwardClick() }) {
-
+            IconButton(onClick = onSeekForwardClick) {
                 Icon(imageVector = Icons.Rounded.FastForward, contentDescription = "Fast Forward")
-
             }
         }
         Spacer(modifier = Modifier.weight(1f))
@@ -107,12 +98,9 @@ fun PlaybackControls(
         ) {
             Text(text = "1x", style = MaterialTheme.typography.bodySmall)
             Spacer(modifier = modifier.width(8.dp))
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = { /*TODO: Implement settings*/ }) {
                 Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings")
-
             }
         }
-
-
     }
 }
