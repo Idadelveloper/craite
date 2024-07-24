@@ -1,6 +1,5 @@
 package com.example.craite.ui.screens.video.composables
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -22,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
-import com.example.craite.ui.screens.video.VideoEditorViewModel
 import com.example.craite.ui.theme.AppColor
 import com.example.craite.utils.Helpers
 
@@ -43,22 +40,19 @@ import com.example.craite.utils.Helpers
 fun PlaybackControls(
     modifier: Modifier = Modifier,
     isPlaying: Boolean,
+    exoPlayer: ExoPlayer,
+    playbackState: Int,
+    currentPosition: Long,
+    duration: Long,
     onPlayPauseClick: () -> Unit,
     onSeekForwardClick: () -> Unit,
     onSeekBackwardClick: () -> Unit,
-    viewModel: VideoEditorViewModel,
-    currentPosition: Long, // Receive the current position
-    duration: Long,
-    exoPlayer: ExoPlayer
 ) {
     val playIcon by remember(isPlaying) {
         derivedStateOf {
             if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow
         }
     }
-
-//    val currentPosition by viewModel.currentPosition.collectAsState()
-//    val duration by viewModel.duration.collectAsState()
 
     //Player Controls`
     Row(
@@ -67,13 +61,15 @@ fun PlaybackControls(
             .fillMaxWidth()
             .then(modifier)
     ) {
-        Log.d("PlaybackControls", "Current Position: $currentPosition")
-        Log.d("PlaybackControls", "Duration: $duration")
-        Text(text = Helpers.formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
-        Text(
-            text = "/${Helpers.formatTime(duration)}",
-            style = MaterialTheme.typography.bodySmall.copy(color = AppColor().neutral50)
-        )
+
+        Row() {
+            Spacer(modifier = modifier.width(8.dp))
+            Text(text = Helpers.formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "/${Helpers.formatTime(duration)}",
+                style = MaterialTheme.typography.bodySmall.copy(color = AppColor().neutral50)
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
         Row(

@@ -25,7 +25,6 @@ fun VideoPreview(
         factory = { context ->
             PlayerView(context).apply {
                 player = exoPlayer
-//                useController = false
             }
         },
         modifier = Modifier
