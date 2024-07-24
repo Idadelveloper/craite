@@ -1,7 +1,13 @@
 package com.example.craite.ui.screens.new_project
 
+import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
@@ -19,13 +25,16 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStream
 
 class NewProjectViewModel: ViewModel() {
     private val storageRef = Firebase.storage.reference
@@ -57,7 +66,8 @@ class NewProjectViewModel: ViewModel() {
 
             return file.absolutePath
         } catch (e: IOException) {
-            // Handle exceptions
+            Log.e("NewProjectViewModel", "Error copying video: ${e.message}")
+            Toast.makeText(context, "Error copying video", Toast.LENGTH_SHORT).show()
             return null
         }
     }
@@ -93,6 +103,20 @@ class NewProjectViewModel: ViewModel() {
                 val project = Project(name = projectName, media = filePaths)
                 projectDao.insert(project)
                 Toast.makeText(context, "Successfully created project", Toast.LENGTH_SHORT).show()
+
+                // Generate and save thumbnail for the first video
+                if (uris.isNotEmpty()) {
+                    val firstVideoUri = uris[0]
+                    val thumbnailUri = getThumbnailUriFromVideo(context, firstVideoUri)
+                    val thumbnailPath = thumbnailUri.first?.toString() // Get the path from Uri
+
+                    // Update the project in the Room database with the thumbnail path
+                    if (thumbnailPath != null) {
+                        val projectId = projectDao.getLastInsertedProject().id
+                        projectDao.updateThumbnailPath(projectId, thumbnailPath)
+                        Log.d("NewProjectViewModel", "Thumbnail path updated in Room database")
+                    }
+                }
 
                 // Upload videos to cloud storage (using file paths)
                 val projectId = projectDao.getLastInsertedProject().id
@@ -169,6 +193,59 @@ class NewProjectViewModel: ViewModel() {
             } catch (e: Exception) {
                 Toast.makeText(context, "Error creating project", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private suspend fun getThumbnailUriFromVideo(context: Context, videoUri: Uri): Pair<Uri?, String?> {
+        return try {
+            withContext(Dispatchers.IO) {
+                val retriever = MediaMetadataRetriever()
+                retriever.setDataSource(context, videoUri)
+                val bitmap = retriever.frameAtTime
+                val videoName = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                    ?: getFileNameFromUri(context, videoUri)
+                retriever.release()
+
+                val thumbnailUri = bitmap?.let {
+                    val imageName = "thumbnail_${System.currentTimeMillis()}.jpg"
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, imageName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+                            put(MediaStore.MediaColumns.IS_PENDING, 1) // Mark as pending
+                        }
+                    }
+
+                    val resolver = context.contentResolver
+                    var imageUri: Uri? = null
+                    var outputStream: OutputStream? = null
+
+                    try {
+                        imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                        outputStream = imageUri?.let { resolver.openOutputStream(it) }
+                        if (outputStream != null) {
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ThumbnailError", "Failed to create thumbnail: ${e.message}", e)
+                    } finally {
+                        outputStream?.close()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            contentValues.clear()
+                            contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                            imageUri?.let { resolver.update(it, contentValues, null, null) }
+                        }
+                    }
+
+                    imageUri
+                }
+
+                Pair(thumbnailUri, videoName)
+            }
+        } catch (e: Exception) {
+            Log.e("ThumbnailError", "Error getting thumbnail: ${e.message}", e)
+            Pair(null, null)
         }
     }
 

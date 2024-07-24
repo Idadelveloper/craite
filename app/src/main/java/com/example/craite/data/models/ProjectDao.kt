@@ -43,4 +43,10 @@ interface ProjectDao {
 
     @Query("UPDATE Project SET mediaNames = :mediaNames WHERE id = :projectId")
     suspend fun updateMediaNames(projectId: Int, mediaNames: Map<String, String>)
+
+    @Query("UPDATE Project SET projectDuration = :duration WHERE id = :projectId")
+    suspend fun updateProjectDuration(projectId: Int, duration: String)
+
+    @Query("UPDATE Project SET thumbnailPath = :thumbnailPath WHERE id = :projectId")
+    suspend fun updateThumbnailPath(projectId: Int, thumbnailPath: String)
 }
