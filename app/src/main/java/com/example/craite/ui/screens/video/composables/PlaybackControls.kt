@@ -45,6 +45,7 @@ fun PlaybackControls(
     duration: Long,
     onPlayPauseClick: () -> Unit,
     onSeekForwardClick: () -> Unit,
+    onSeekBackwardClick: () -> Unit,
 ) {
     var playIcon by remember { mutableStateOf(Icons.Rounded.PlayArrow) }
 
@@ -70,7 +71,7 @@ fun PlaybackControls(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.wrapContentWidth()
         ) {
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = { onSeekBackwardClick() }) {
 
                 Icon(imageVector = Icons.Rounded.FastRewind, contentDescription = "Rewind")
 
@@ -98,7 +99,7 @@ fun PlaybackControls(
                 Icon(imageVector = playIcon, contentDescription = "Play/Pause")
 
             }
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = { onSeekForwardClick() }) {
 
                 Icon(imageVector = Icons.Rounded.FastForward, contentDescription = "Fast Forward")
 
@@ -113,7 +114,7 @@ fun PlaybackControls(
             Text(text = "1x", style = MaterialTheme.typography.bodySmall)
             Spacer(modifier = modifier.width(8.dp))
             IconButton(onClick = { /*TODO*/ }) {
-                Icon(imageVector = Icons.Filled.Settings, contentDescription = "Play Button")
+                Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings")
 
             }
         }

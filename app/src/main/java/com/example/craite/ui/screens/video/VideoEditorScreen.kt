@@ -145,7 +145,14 @@ fun VideoEditorScreen(
                 onPlayPauseClick = {
                     if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
                 },
-                onSeekForwardClick = { exoPlayer.seekTo(currentPosition + 10000) }
+                onSeekForwardClick = {
+                    val newPosition = exoPlayer.currentPosition + 10000
+                    exoPlayer.seekTo(newPosition.coerceAtMost(duration))
+                },
+                onSeekBackwardClick = {
+                    val newPosition = exoPlayer.currentPosition - 10000
+                    exoPlayer.seekTo(newPosition.coerceAtLeast(0))
+                }
             )
             Timeline()
 
