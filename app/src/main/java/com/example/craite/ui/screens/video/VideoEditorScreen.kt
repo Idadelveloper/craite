@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -65,49 +67,75 @@ fun VideoEditorScreen(
     val downloadButtonEnabled by viewModel.downloadButtonEnabled.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
 
-    val playbackState = exoPlayer.playbackState
-    val latestPlaybackState = rememberUpdatedState(playbackState)
-    var currentPosition by remember { mutableStateOf(0L) }
-    var duration by remember { mutableStateOf(0L) }
 
-    // Observe currentPosition and duration
+    var currentPosition by remember { mutableStateOf(0L) }
+
+    fun onCurrentPositionChanged(newPosition: Long) {
+        currentPosition = newPosition
+    }
+
+
+    val exoPlayerListener = ExoPlayerListener(viewModel, exoPlayer)
     LaunchedEffect(exoPlayer) {
-        while (true) {
-            currentPosition = exoPlayer.currentPosition
-            duration = exoPlayer.duration
-            delay(1000)
+        exoPlayer.addListener(exoPlayerListener)
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer.removeListener(exoPlayerListener)
         }
     }
+
+    // Collect ExoPlayer actions
+    LaunchedEffect(viewModel) {
+        viewModel.exoPlayerActions.collect { action ->
+            when (action) {
+                VideoEditorViewModel.ExoPlayerAction.Play -> exoPlayer.play()
+                VideoEditorViewModel.ExoPlayerAction.Pause -> exoPlayer.pause()
+                is VideoEditorViewModel.ExoPlayerAction.SeekTo -> exoPlayer.seekTo(action.position)
+            }
+        }
+    }
+
+    // Collect current position updates from ExoPlayer and trigger recomposition
+    LaunchedEffect(exoPlayer) {
+        snapshotFlow { exoPlayer.currentPosition }
+            .collect { newPosition ->
+                viewModel.updateCurrentPosition(newPosition)
+            }
+    }
+
 
     Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
     Log.d("VideoEditScreen", "MediaItems: ${project.media}")
     Log.d("VideoEditScreen", "PromptId: ${project.promptId}")
 
-    LaunchedEffect(latestPlaybackState) { // Log playback state changes
-        Log.d("VideoEditorScreen", "Playback State: ${latestPlaybackState.value}")
-    }
 
     Scaffold(
-         modifier = Modifier.fillMaxSize(),
-    ) {
-        innerPadding ->
+        modifier = Modifier.fillMaxSize(),
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-            
+
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)) {
-    IconButton(onClick = { /*TODO*/ }) {
-        Icon(imageVector = Icons.AutoMirrored.Rounded.ArrowBack , contentDescription = "Back icon" )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                IconButton(onClick = { /*TODO*/ }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back icon"
+                    )
 
-        
-    }
+
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
                     contentPadding = PaddingValues(horizontal = 12.dp),
@@ -121,7 +149,10 @@ fun VideoEditorScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "1080p")
                         Spacer(Modifier.width(8.dp))
-                        Icon(imageVector = Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = null
+                        )
                     }
                 }
                 Button(
@@ -133,17 +164,19 @@ fun VideoEditorScreen(
                 ) {
 
 
-                        Text(text = "Export")
+                    Text(text = "Export")
 
                 }
-}
+
+            }
+
+            // Collect currentPosition and duration here to trigger recomposition of PlaybackControls
+            val currentPosition by viewModel.currentPosition.collectAsState()
+            val duration by viewModel.duration.collectAsState()
+
             VideoPreview(exoPlayer)
             PlaybackControls(
                 isPlaying = isPlaying,
-                exoPlayer = exoPlayer,
-                playbackState = latestPlaybackState.value,
-                currentPosition = currentPosition,
-                duration = duration,
                 onPlayPauseClick = {
                     if (isPlaying) {
                         viewModel.pauseVideo()
@@ -151,38 +184,27 @@ fun VideoEditorScreen(
                         viewModel.playVideo()
                     }
                 },
-                onSeekForwardClick = {
-                    val newPosition = exoPlayer.currentPosition + 10000
-                    exoPlayer.seekTo(newPosition.coerceAtMost(duration))
-                },
-                onSeekBackwardClick = {
-                    val newPosition = exoPlayer.currentPosition - 10000
-                    exoPlayer.seekTo(newPosition.coerceAtLeast(0))
-                }
+                onSeekForwardClick = { viewModel.seekForward() },
+                onSeekBackwardClick = { viewModel.seekBackward() },
+                viewModel = viewModel,
+                currentPosition = currentPosition, // Pass the collected values
+                duration = duration,
+                exoPlayer = exoPlayer
             )
-            // Trigger ExoPlayer actions based on isPlaying
-            LaunchedEffect(isPlaying) {
-                if (isPlaying) {
-                    if (exoPlayer.currentPosition >= exoPlayer.duration) {
-                        exoPlayer.seekTo(0)
-                    }
-                    exoPlayer.play()
-                } else {
-                    exoPlayer.pause()
-                }
-            }
 
             Timeline()
 
         }
     }
 
-    // Prepare ExoPlayer for playback
+    // Prepare ExoPlayer for playback and attach listener
     LaunchedEffect(mediaItemMap) {
+        exoPlayer.addListener(exoPlayerListener)
         exoPlayer.setMediaItems(mediaItemMap.values.toList())
         exoPlayer.prepare()
         exoPlayer.play()
     }
+
 }
 
 

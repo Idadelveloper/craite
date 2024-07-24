@@ -18,8 +18,11 @@ import com.example.craite.data.VideoEdit
 import com.example.craite.data.models.ProjectDatabase
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -41,12 +44,54 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
+
+    private val _duration = MutableStateFlow(0L)
+    val duration: StateFlow<Long> = _duration.asStateFlow()
+
+    private val _exoPlayerActions = MutableSharedFlow<ExoPlayerAction>()
+    val exoPlayerActions: SharedFlow<ExoPlayerAction> = _exoPlayerActions.asSharedFlow()
+
     fun playVideo() {
         _isPlaying.value = true
+        viewModelScope.launch {
+            _exoPlayerActions.emit(ExoPlayerAction.Play)
+        }
     }
 
     fun pauseVideo() {
         _isPlaying.value = false
+        viewModelScope.launch {
+            _exoPlayerActions.emit(ExoPlayerAction.Pause)
+        }
+    }
+
+    fun seekForward(seekIncrement: Long = 10000) {
+        val newPosition = _currentPosition.value + seekIncrement
+        val clampedPosition = newPosition.coerceAtMost(_duration.value)
+        _currentPosition.value = clampedPosition
+        viewModelScope.launch {
+            _exoPlayerActions.emit(ExoPlayerAction.SeekTo(clampedPosition))
+        }
+    }
+
+    fun seekBackward(seekDecrement: Long = 10000) {
+        val newPosition = _currentPosition.value - seekDecrement
+        val clampedPosition = newPosition.coerceAtLeast(0)
+        _currentPosition.value = clampedPosition
+        viewModelScope.launch {
+            _exoPlayerActions.emit(ExoPlayerAction.SeekTo(clampedPosition))
+        }
+    }
+
+    fun updateCurrentPosition(position: Long) {
+        Log.d("VideoEditorViewModel", "Updating current position to: $position")
+        _currentPosition.value = position
+    }
+
+    fun updateDuration(duration: Long) {
+        _duration.value = duration
     }
 
     fun showProgressDialog() {
@@ -259,5 +304,11 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     // Example usage: showSnackbar { Text("Error message") }
     private fun showSnackbar(message: @Composable () -> Unit) {
         // Implement  Snackbar logic here
+    }
+
+    sealed class ExoPlayerAction {
+        object Play : ExoPlayerAction()
+        object Pause : ExoPlayerAction()
+        data class SeekTo(val position: Long) : ExoPlayerAction()
     }
 }
