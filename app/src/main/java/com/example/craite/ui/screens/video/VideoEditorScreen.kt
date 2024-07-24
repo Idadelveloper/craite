@@ -26,13 +26,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Timeline
+import androidx.navigation.NavController
+import com.example.craite.data.models.Project
+import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.video.composables.PlaybackControls
 import com.example.craite.ui.screens.video.composables.Timeline
 import com.example.craite.ui.screens.video.composables.VideoPreview
+import com.google.firebase.auth.FirebaseUser
 
-@Preview(showBackground = true, showSystemUi = true)
+//@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun VideoEditorScreen(modifier: Modifier = Modifier) {
+fun VideoEditorScreen(
+    project: Project,
+    navController: NavController,
+    user: FirebaseUser?,
+    projectDatabase: ProjectDatabase
+) {
     Scaffold(
          modifier = Modifier.fillMaxSize(),
     ) {
@@ -66,7 +75,7 @@ fun VideoEditorScreen(modifier: Modifier = Modifier) {
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "1080p")
-                        Spacer(modifier.width(8.dp))
+                        Spacer(Modifier.width(8.dp))
                         Icon(imageVector = Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                     }
                 }

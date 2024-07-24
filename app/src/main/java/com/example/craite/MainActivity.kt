@@ -100,8 +100,17 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
         composable("new_project_screen") {
             NewProject(navController = navController, projectDatabase = db, context = context, user = user)
         }
-        composable("video_editor_screen") {
-            VideoEditorScreen()
+        composable(
+            route = "video_editor_screen/{projectId}",
+            arguments = listOf(navArgument("projectId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getInt("projectId") ?: -1
+            val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
+            val mediaUris = project?.media
+            if (mediaUris != null) {
+                VideoEditorScreen(project, navController, user, db)
+            }
+
         }
         composable(
             route = "video_edit_screen/{projectId}",
