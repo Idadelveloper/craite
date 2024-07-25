@@ -16,6 +16,7 @@ import com.example.craite.data.MediaEffect
 import com.example.craite.data.RetrofitClient
 import com.example.craite.data.VideoEdit
 import com.example.craite.data.models.ProjectDatabase
+import com.example.craite.utils.Helpers
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +42,12 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _totalDuration = MutableStateFlow(0L)
+    val totalDuration: StateFlow<Long> = _totalDuration.asStateFlow()
+
+    private val _intervals = MutableStateFlow<List<Long>>(emptyList())
+    val intervals: StateFlow<List<Long>> = _intervals.asStateFlow()
+
     private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
 
     // Playback controls
@@ -65,6 +72,13 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private fun updateEditSettings(newEditSettings: EditSettings) {
         _uiState.value = newEditSettings
         _downloadButtonEnabled.value = true // Enable download button when edits are available
+    }
+
+    // Update total duration
+    fun updateTotalDuration(duration: Long) {
+        _totalDuration.value = duration
+        // Recalculate intervals when totalDuration changes
+        _intervals.value = Helpers.calculateIntervals(duration)
     }
 
     // Set current media item index

@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,11 +72,22 @@ fun VideoEditorScreen(
     var currentPosition by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
 
+    // Observe total duration from ViewModel
+    val totalDuration by viewModel.totalDuration.collectAsState()
+
+    // Observe intervals from ViewModel
+    val intervals by viewModel.intervals.collectAsState()
+
     // Observe currentPosition and duration
     LaunchedEffect(exoPlayer) {
         while (true) {
             currentPosition = exoPlayer.currentPosition
             duration = exoPlayer.duration
+
+            // Update total duration in ViewModel
+            viewModel.updateTotalDuration(duration)
+            Log.d("VideoEditorScreen", "Total Duration: $duration")
+            Log.d("VideoEditorScreen", "Intervals: $intervals")
             delay(1000)
         }
     }
@@ -166,7 +178,8 @@ fun VideoEditorScreen(
                 }
             }
 
-            Timeline()
+            Timeline(intervals)
+
         }
     }
 
