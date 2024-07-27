@@ -1,10 +1,19 @@
 package com.example.craite.ui.screens.video
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.transformer.Composition
 import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.EditSettings
 import com.example.craite.data.EditSettingsRepository
@@ -25,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+@UnstableApi
 class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
     private val _uiState = MutableStateFlow(initialEditSettings)
@@ -49,6 +59,45 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     val intervals: StateFlow<List<Long>> = _intervals.asStateFlow()
 
     private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
+
+    private val _composition = MutableStateFlow<Composition?>(null)
+    val composition: StateFlow<Composition?> = _composition.asStateFlow()
+
+    private val _mediaSources = MutableStateFlow<List<MediaSource>>(emptyList())
+    val mediaSources: StateFlow<List<MediaSource>> = _mediaSources.asStateFlow()
+
+    private val _timeline = MutableStateFlow<Timeline?>(null)
+    val timeline: StateFlow<Timeline?> = _timeline.asStateFlow()
+
+    fun createMediaSources(context: Context, mediaUris: List<Uri>) {
+        viewModelScope.launch {
+            val sources = mediaUris.map { uri ->
+                try {
+                    ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
+                        .createMediaSource(MediaItem.fromUri(uri))
+                } catch (e: Exception) {
+                    Log.e("VideoEditorViewModel", "Error creating MediaSource for $uri: ${e.message}")
+                    null
+                }
+            }.filterNotNull()
+            _mediaSources.value = sources
+        }
+    }
+
+    fun updateTimeline(exoPlayer: ExoPlayer) {
+        viewModelScope.launch {
+            _timeline.value = exoPlayer.currentTimeline
+        }
+    }
+
+
+
+    fun updateEditSettings(newEditSettings: EditSettings, context: Context, mediaMap: Map<String, String>) {
+        _uiState.value = newEditSettings
+        _downloadButtonEnabled.value = true
+
+
+    }
 
     // Playback controls
     fun playVideo() {
