@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +61,10 @@ import com.example.craite.ui.screens.video.composables.TimeIntervalDisplay
 import com.example.craite.ui.screens.video.composables.VideoPreview
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import java.io.File
+import kotlin.text.toFloat
+import kotlin.text.toLong
 
 //@Preview(showBackground = true, showSystemUi = true)
 @OptIn(UnstableApi::class)
@@ -100,6 +104,9 @@ fun VideoEditorScreen(
     val mediaSources by viewModel.mediaSources.collectAsState()
     val timeline by viewModel.timeline.collectAsState()
 
+    // State for slider position (0f to 1f)
+    var sliderPosition by remember { mutableStateOf(0f) }
+
 
     if (project != null) {
         Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
@@ -113,6 +120,9 @@ fun VideoEditorScreen(
             viewModel.createMediaSources(context, project.media.map { Uri.fromFile(File(it)) })
         }
     }
+
+
+
 
     // Prepare ExoPlayer for playback (Modified)
     LaunchedEffect(mediaSources) { // Triggered when mediaSources changes
@@ -273,6 +283,34 @@ fun VideoEditorScreen(
                         exoPlayer.seekTo(newPosition.coerceAtLeast(0))
                     }
                 )
+
+                // Slider for seeking
+                Slider(
+                    value = sliderPosition,
+                    onValueChange = { newValue ->
+                        sliderPosition = newValue
+                        // Seek to the new position in the video
+                        val seekPosition = (newValue * duration).toLong()
+                        exoPlayer.seekTo(seekPosition)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+
+                // Update slider position as the video plays
+                LaunchedEffect(key1 = playerReady) {
+                    if (playerReady) {
+                        while (true) {
+                            if (duration > 0) {
+                                sliderPosition = exoPlayer.currentPosition.toFloat() / duration.toFloat()
+                            }
+                            delay(100) // Update every 100 milliseconds
+                        }
+                    }
+                }
+
+
                 // Trigger ExoPlayer actions based on isPlaying
                 LaunchedEffect(isPlaying) {
                     if (isPlaying) {
@@ -306,6 +344,13 @@ fun VideoEditorScreen(
         // Display a loading indicator or placeholder while the player is preparing
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator() // Or any other loading indicator
+        }
+    }
+
+    // Update slider position based on ExoPlayer's current position
+    LaunchedEffect(key1 = currentPosition) {
+        if (duration > 0) {
+            sliderPosition = currentPosition.toFloat() / duration.toFloat()
         }
     }
 
