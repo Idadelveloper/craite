@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
@@ -108,12 +110,14 @@ fun ClipItem(index: Int, duration: Double, exoPlayer: ExoPlayer, frames: List<Im
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(itemWidth) // Set the calculated width for the ClipItem
+            .width(itemWidth)
             .clickable { onClipClick() }
+            .border(1.dp, Color.Gray) // Add a border to the ClipItem
+            .padding(4.dp) // Optional: Add padding around the content within the border
     ) {
         LazyRow(
-            modifier = Modifier.height(64.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.height(64.dp)
+            // Removed spacing between frames
         ) {
             frames?.let {
                 items(it.size) { frameIndex ->
@@ -124,10 +128,10 @@ fun ClipItem(index: Int, duration: Double, exoPlayer: ExoPlayer, frames: List<Im
                             contentDescription = "Clip Thumbnail",
                             modifier = Modifier.size(64.dp)
                         )
-                    } // End of if (frame != null)
-                } // End of items
-            } // End of frames?.let
-        } // End of LazyRow
+                    }
+                }
+            }
+        }
 
         Text(text = "Clip $index (${String.format("%.2f", duration)}s)")
     }
