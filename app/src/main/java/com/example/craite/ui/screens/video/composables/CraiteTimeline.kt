@@ -104,31 +104,27 @@ fun CraiteTimeline(timeline: Timeline, exoPlayer: ExoPlayer, context: Context) {
 @OptIn(UnstableApi::class)
 @Composable
 fun ClipItem(index: Int, duration: Double, exoPlayer: ExoPlayer, frames: List<ImageBitmap?>?, onClipClick: () -> Unit) {
-    // Calculate width based on number of frames and spacing
-    val itemWidth = (frames?.size ?: 0) * (64.dp + 4.dp) // 64.dp per frame + 4.dp spacing
+
+    val itemWidth = (frames?.size ?: 0) * (64.dp + 4.dp)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(itemWidth)
             .clickable { onClipClick() }
-            .border(1.dp, Color.Gray) // Add a border to the ClipItem
-            .padding(4.dp) // Optional: Add padding around the content within the border
+            .border(1.dp, Color.Gray)
+            .padding(4.dp)
     ) {
-        LazyRow(
+        Row(
             modifier = Modifier.height(64.dp)
-            // Removed spacing between frames
         ) {
-            frames?.let {
-                items(it.size) { frameIndex ->
-                    val frame = it[frameIndex]
-                    if (frame != null) {
-                        Image(
-                            bitmap = frame,
-                            contentDescription = "Clip Thumbnail",
-                            modifier = Modifier.size(64.dp)
-                        )
-                    }
+            frames?.forEach { frame ->
+                if (frame != null) {
+                    Image(
+                        bitmap = frame,
+                        contentDescription = "Clip Thumbnail",
+                        modifier = Modifier.size(64.dp)
+                    )
                 }
             }
         }
@@ -136,7 +132,6 @@ fun ClipItem(index: Int, duration: Double, exoPlayer: ExoPlayer, frames: List<Im
         Text(text = "Clip $index (${String.format("%.2f", duration)}s)")
     }
 }
-
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -164,25 +159,20 @@ fun TimeIntervalDisplay(timeline: Timeline) {
     }
 }
 
-fun loadFramesForClip(context: Context, clipUri: Uri, numFrames: Int): List<ImageBitmap?> {
+fun loadFramesForClip(context: Context, clipUri: Uri, durationSeconds: Int): List<ImageBitmap?> {
     val frames = mutableListOf<ImageBitmap?>()
     val retriever = MediaMetadataRetriever()
     try {
         retriever.setDataSource(context, clipUri)
 
-        // Get video duration and calculate interval
-        val durationUs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-        val intervalUs = if (numFrames > 0) durationUs / numFrames else 0L
-
-        // Extract frames at intervals
-        for (i in 0 until numFrames) {
-            val timeUs = i * intervalUs
+        // Extract one frame per second
+        for (i in 0 until durationSeconds) {
+            val timeUs = (i * 1000000).toLong()
             val frameBitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
             frames.add(frameBitmap?.asImageBitmap())
         }
     } catch (e: Exception) {
         Log.e("FrameLoading", "Error loading frames: ${e.message}")
-        // Handle exceptions, e.g., by adding null frames or showing an error message
     } finally {
         retriever.release()
     }

@@ -332,6 +332,15 @@ fun VideoEditorScreen(
                         }
                     }
                 }
+                Button(
+                    onClick = { TODO() }, // Get firestore data
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(text = "Get gemini edit")
+                }
 
                 LaunchedEffect(Unit) {
                     if (mediaUris != null) {
