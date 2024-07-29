@@ -327,7 +327,7 @@ fun VideoEditorScreen(
                 Column(modifier = Modifier.fillMaxWidth()) { // Wrap in a Column for vertical arrangement
                     timeline?.let {
                         if (it.windowCount > 0) {
-                            CraiteTimeline(timeline = it, exoPlayer = exoPlayer)
+                            CraiteTimeline(timeline = it, exoPlayer = exoPlayer, context = context)
                             TimeIntervalDisplay(it)
                         }
                     }
