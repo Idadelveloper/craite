@@ -1,11 +1,19 @@
 package com.example.craite.ui.screens.video
 
+import android.content.ContentValues
 import android.content.Context
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
@@ -14,6 +22,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.transformer.Composition
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.EditSettings
 import com.example.craite.data.EditSettingsRepository
@@ -24,6 +34,7 @@ import com.example.craite.data.GeminiResult
 import com.example.craite.data.MediaEffect
 import com.example.craite.data.RetrofitClient
 import com.example.craite.data.VideoEdit
+import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.utils.Helpers
 import com.google.firebase.firestore.ktx.firestore
@@ -33,6 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.File
 
 @UnstableApi
 class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
@@ -261,8 +273,160 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
         }
     }
 
+    // Export video
+    fun exportVideo(context: Context, project: Project?, editSettings: EditSettings, exoPlayer: ExoPlayer) {
+        Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
+        showProgressDialog()
+        viewModelScope.launch {
+            val videoEditor = VideoEditor()
+            val mergeResult = project?.let {
+                videoEditor.trimAndMergeToTempFile(
+                    context,
+                    editSettings,
+                    it.mediaNames // Pass the mediaNameMap
+                )
+            }
+
+            if (mergeResult != null) {
+                mergeResult.onSuccess { mergedVideoPath ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // MediaStore (Android 10 and above)
+                        val contentValues = ContentValues().apply {
+                            put(
+                                MediaStore.MediaColumns.DISPLAY_NAME,
+                                "merged_video_${System.currentTimeMillis()}.mp4"
+                            )
+                            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                            put(
+                                MediaStore.MediaColumns.RELATIVE_PATH,
+                                Environment.DIRECTORY_MOVIES
+                            )
+                        }
+
+                        val resolver = context.contentResolver
+                        val uri = resolver.insert(
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            contentValues
+                        )
+
+                        uri?.let { videoUri ->
+                            resolver.openOutputStream(videoUri)?.use { outputStream ->
+                                File(mergedVideoPath).inputStream().use { inputStream ->
+                                    inputStream.copyTo(outputStream)
+                                }
+                                File(mergedVideoPath).delete() // Delete temporary file
+                                Log.d("VideoEditorViewModel", "Video saved to MediaStore: $videoUri")
+                                Toast.makeText(
+                                    context,
+                                    "Video saved to MediaStore: $videoUri",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                // Update ExoPlayer with merged video URI (if needed)
+                                val mergedMediaItem = MediaItem.fromUri(videoUri)
+                                exoPlayer.setMediaItem(mergedMediaItem)
+                                exoPlayer.prepare()
+                                exoPlayer.playWhenReady = true
+                            }
+                        } ?: run {
+                            Log.e("VideoEditorViewModel", "Error saving to MediaStore: URI is null")
+                            Toast.makeText(
+                                context,
+                                "Error saving to MediaStore",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } else {
+                        // Legacy Storage (Older Android versions)
+                        MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(mergedVideoPath), // Pass the file path directly
+                            arrayOf("video/mp4"),
+                            null
+                        )
+                        Log.d("VideoEditorViewModel", "Video saved to: $mergedVideoPath")
+                        Toast.makeText(
+                            context,
+                            "Video saved to: $mergedVideoPath",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // Update ExoPlayer with merged video file path (if needed)
+                        val mergedMediaItem = MediaItem.fromUri(Uri.fromFile(File(mergedVideoPath)))
+                        exoPlayer.setMediaItem(mergedMediaItem)
+                        exoPlayer.prepare()
+                        exoPlayer.playWhenReady = true
+                    }
+                }.onFailure { exception ->
+                    Log.e("VideoEditorViewModel", "Error merging videos: ${exception.message}")
+                    Toast.makeText(context, "Error merging videos", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            hideProgressDialog()
+        }
+    }
+
+    // Function to handle Get Gemini Edits button click
+    fun getGeminiEdits(userId: String, project: Project?, projectDatabase: ProjectDatabase) {
+        if (project != null) {
+            fetchAndSaveGeminiResponse(
+                userId,
+                project.id,
+                project.promptId,
+                projectDatabase
+            )
+        }
+    }
+
+    // Function to handle Apply Firestore Edits button click
+    fun applyFirestoreEdits(userId: String, project: Project?, context: Context) {
+        Log.d("VideoEditorViewModel", project?.mediaNames.toString())
+        Log.d("VideoEditorViewModel", project?.media.toString())
+
+        if (project != null) {
+            fetchAndApplyFirestoreEdits(
+                userId,
+                project.id,
+                project.promptId ?: "",
+                project.mediaNames,
+                context
+            )
+        }
+
+    }
+
     // Show Snackbar (Placeholder for Snackbar implementation)
     private fun showSnackbar(message: @Composable () -> Unit) {
         // Implement Snackbar logic here
+    }
+
+    fun changeResolution(context: Context, resolution: String, exoPlayer: ExoPlayer) {
+        viewModelScope.launch {
+            // 1. Get the current video file path
+            val currentVideoPath = "" // ... (Get the path of the video being played) ...
+
+            // 2. Create a temporary output file path
+            val outputFile = File.createTempFile("transcoded_video", ".mp4", context.cacheDir)
+            val outputFilePath = outputFile.absolutePath
+
+            // 3. Build the FFmpeg command
+            val command = "-i $currentVideoPath -s $resolution -c:v libx264 -crf 23 -preset ultrafast -c:a copy $outputFilePath"
+
+            // 4. Execute the FFmpeg command using FFmpegKit
+            FFmpegKit.executeAsync(command) { session ->
+                val returnCode = session.returnCode
+                if (ReturnCode.isSuccess(returnCode)) {
+                    // 5. Transcoding successful, update ExoPlayer
+                    val newMediaItem = MediaItem.fromUri(Uri.fromFile(outputFile))
+                    exoPlayer.setMediaItem(newMediaItem)
+                    exoPlayer.prepare()
+                } else {
+                    // 6. Handle transcoding error
+                    Log.e("VideoEditorViewModel", "FFmpegKit error: ${session.failStackTrace}")
+                    // ... (Display error message to the user) ...
+                }
+            }
+        }
     }
 }

@@ -1,7 +1,13 @@
 package com.example.craite.ui.screens.video
 
+import android.content.ContentValues
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -51,6 +59,7 @@ import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.upstream.Loader.Loadable
 import androidx.navigation.NavController
+import com.example.craite.VideoEditor
 import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.generateFakeEditSettings
@@ -62,6 +71,7 @@ import com.example.craite.ui.screens.video.composables.VideoPreview
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.text.toFloat
 import kotlin.text.toLong
@@ -94,6 +104,9 @@ fun VideoEditorScreen(
     var duration by remember { mutableLongStateOf(0L) }
 
     var playerReady by remember { mutableStateOf(false) }
+
+    var showResolutionDialog by remember { mutableStateOf(false) }
+    var selectedResolution by remember { mutableStateOf("1080p") }
 
     // Observe total duration from ViewModel
     val totalDuration by viewModel.totalDuration.collectAsState()
@@ -235,7 +248,7 @@ fun VideoEditorScreen(
                     Spacer(modifier = Modifier.weight(1f))
                     Button(
                         contentPadding = PaddingValues(horizontal = 12.dp),
-                        onClick = { /* Change video resolution logic */ },
+                        onClick = { showResolutionDialog = true },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -250,8 +263,37 @@ fun VideoEditorScreen(
                             )
                         }
                     }
+
+                    if (showResolutionDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showResolutionDialog = false },
+                            title = { Text("Select Resolution") },
+                            text = {
+                                Column {
+                                    ResolutionOption("720p") { selectedResolution = "720p" }
+                                    ResolutionOption("1080p") { selectedResolution = "1080p" }
+                                    // Add more resolution options as needed
+                                }
+                            },
+                            confirmButton = {
+                                Button(onClick = {
+                                    showResolutionDialog = false
+                                    // Call a function in the ViewModel to handle resolution change
+                                    viewModel.changeResolution(context, selectedResolution, exoPlayer)
+                                }) {
+                                    Text("OK")
+                                }
+                            },
+                            dismissButton = {
+                                Button(onClick = { showResolutionDialog = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
                     Button(
-                        onClick = { TODO() }, // Implement export video logic
+                        onClick = { viewModel.exportVideo(context, project, editSettings, exoPlayer) }, // Implement export video logic
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -332,14 +374,21 @@ fun VideoEditorScreen(
                         }
                     }
                 }
-                Button(
-                    onClick = { TODO() }, // Get firestore data
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text(text = "Get gemini edit")
+                Row {
+                    Button(
+                        onClick = { viewModel.getGeminiEdits(user?.uid ?: "", project, projectDatabase) }, // Get firestore data
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(text = "Get gemini edits")
+                    }
+
+                    Button(onClick = { viewModel.applyFirestoreEdits(user?.uid ?: "", project, context) }
+                    ) {
+                        Text("Apply Firestore Edits")
+                    }
                 }
 
                 LaunchedEffect(Unit) {
@@ -350,9 +399,8 @@ fun VideoEditorScreen(
             }
         }
     } else {
-        // Display a loading indicator or placeholder while the player is preparing
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator() // Or any other loading indicator
+            CircularProgressIndicator()
         }
     }
 
@@ -363,4 +411,20 @@ fun VideoEditorScreen(
         }
     }
 
+    if (showProgressDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("Processing Video") },
+            text = { Text("Please wait...") },
+            confirmButton = { }
+        )
+    }
+
+}
+
+@Composable
+fun ResolutionOption(resolution: String, onClick: () -> Unit) {
+    Button(onClick = onClick) {
+        Text(resolution)
+    }
 }

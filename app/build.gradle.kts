@@ -156,9 +156,11 @@ dependencies {
    // implementation("com.microsoft.fluentui:FluentUIAndroid:0.2.9")
     implementation("com.microsoft.fluentui:fluentui_icons:0.2.0")
 
-
     //Google Fonts
     implementation("androidx.compose.ui:ui-text-google-fonts:1.6.8")
+
+    // FFmpeg kit
+    implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
 
 
 
