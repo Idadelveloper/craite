@@ -14,6 +14,7 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
+import java.util.Date
 
 class ProjectTypeConverters {
 
@@ -73,6 +74,16 @@ class ProjectTypeConverters {
     fun toStringList(string: String): List<String> {
         val listType = object : TypeToken<List<String>>() {}.type
         return gson.fromJson(string, listType)
+    }
+
+    @TypeConverter
+    fun fromDate(date: Date?): Long? {
+        return date?.time
+    }
+
+    @TypeConverter
+    fun toDate(dateLong: Long?): Date? {
+        return dateLong?.let { Date(it) }
     }
 
 }

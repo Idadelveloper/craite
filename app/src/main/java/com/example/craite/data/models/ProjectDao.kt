@@ -49,4 +49,10 @@ interface ProjectDao {
 
     @Query("UPDATE Project SET thumbnailPath = :thumbnailPath WHERE id = :projectId")
     suspend fun updateThumbnailPath(projectId: Int, thumbnailPath: String)
+
+    @Query("UPDATE Project SET uploadCompleted = :uploadCompleted WHERE id = :projectId")
+    suspend fun updateUploadCompleted(projectId: Int, uploadCompleted: Boolean)
+
+    @Query("UPDATE Project SET audioPath = :audioPath WHERE id = :projectId")
+    suspend fun updateAudioPath(projectId: Int, audioPath: String?)
 }

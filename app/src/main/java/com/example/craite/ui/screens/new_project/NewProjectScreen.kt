@@ -116,7 +116,7 @@ fun NewProjectScreen(
         if (projectCreationInitiated) {
             val projectId = projectDatabase.projectDao().getLastInsertedProject().id
 //            navController.navigate("video_edit_screen/$projectId")
-            navController.navigate("video_editor_screen/$$projectId")
+            navController.navigate("video_editor_screen/$projectId")
         }
     }
 
