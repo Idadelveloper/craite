@@ -125,6 +125,7 @@ fun VideoEditorScreen(
         Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
         Log.d("VideoEditScreen", "MediaItems: ${project.media}")
         Log.d("VideoEditScreen", "PromptId: ${project.promptId}")
+        Log.d("VideoEditScreen", "Prompt: ${project.prompt}")
     }
 
     // Create media sources when project is available

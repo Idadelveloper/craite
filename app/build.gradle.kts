@@ -162,6 +162,9 @@ dependencies {
     // FFmpeg kit
     implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
 
+    // Transcoder
+    implementation("com.otaliastudios:transcoder:0.10.5")
+
 
 
     implementation(libs.material3)
