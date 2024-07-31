@@ -128,6 +128,10 @@ fun VideoEditorScreen(
         Log.d("VideoEditScreen", "Prompt: ${project.prompt}")
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.initializeCache(context)
+    }
+
     // Create media sources when project is available
     LaunchedEffect(project) {
         if (project != null) {

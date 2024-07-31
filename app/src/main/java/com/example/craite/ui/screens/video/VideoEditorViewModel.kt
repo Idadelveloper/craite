@@ -1,5 +1,6 @@
 package com.example.craite.ui.screens.video
 
+import android.app.Application
 import android.content.ContentValues
 import android.content.Context
 import android.media.MediaScannerConnection
@@ -17,7 +18,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -39,6 +45,7 @@ import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.utils.Helpers
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import dagger.hilt.android.internal.Contexts.getApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,17 +89,23 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _timeline = MutableStateFlow<Timeline?>(null)
     val timeline: StateFlow<Timeline?> = _timeline.asStateFlow()
 
+    private lateinit var cache: Cache
+
+    fun initializeCache(context: Context) {
+        cache = SimpleCache(context.cacheDir, LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024))
+    }
+
     fun createMediaSources(context: Context, mediaUris: List<Uri>) {
         viewModelScope.launch {
             val sources = mediaUris.map { uri ->
-                try {
-                    ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
-                        .createMediaSource(MediaItem.fromUri(uri))
-                } catch (e: Exception) {
-                    Log.e("VideoEditorViewModel", "Error creating MediaSource for $uri: ${e.message}")
-                    null
-                }
-            }.filterNotNull()
+                val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context)
+                val cacheDataSourceFactory = CacheDataSource.Factory()
+                    .setCache(cache)
+                    .setUpstreamDataSourceFactory(dataSourceFactory)
+
+                ProgressiveMediaSource.Factory(cacheDataSourceFactory)
+                    .createMediaSource(MediaItem.fromUri(uri))
+            }
             _mediaSources.value = sources
         }
     }
@@ -167,7 +180,7 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     }
 
     // Fetch and save Gemini response
-    fun fetchAndSaveGeminiResponse(
+    private fun fetchAndSaveGeminiResponse(
         userId: String,
         projectId: Int,
         promptId: String?,
