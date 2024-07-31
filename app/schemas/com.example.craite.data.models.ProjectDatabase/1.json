@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "bd88a1ac2d505e8d99a8d348a4b4899c",
+    "identityHash": "39b10b0cc10d4bf984091f0b5da04377",
     "entities": [
       {
         "tableName": "Project",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `media` TEXT NOT NULL, `mediaNames` TEXT NOT NULL, `prompt` TEXT, `promptId` TEXT, `isProcessing` INTEGER NOT NULL, `thumbnailPath` TEXT, `projectDuration` TEXT, `editingSettings` TEXT, `geminiResponse` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `media` TEXT NOT NULL, `mediaNames` TEXT NOT NULL, `audioPath` TEXT, `prompt` TEXT, `promptId` TEXT, `uploadCompleted` INTEGER NOT NULL, `thumbnailPath` TEXT, `projectDuration` TEXT, `editingSettings` TEXT, `geminiResponse` TEXT, `dateCreated` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP)",
         "fields": [
           {
             "fieldPath": "id",
@@ -33,6 +33,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "audioPath",
+            "columnName": "audioPath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
             "fieldPath": "prompt",
             "columnName": "prompt",
             "affinity": "TEXT",
@@ -45,8 +51,8 @@
             "notNull": false
           },
           {
-            "fieldPath": "isProcessing",
-            "columnName": "isProcessing",
+            "fieldPath": "uploadCompleted",
+            "columnName": "uploadCompleted",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -73,6 +79,13 @@
             "columnName": "geminiResponse",
             "affinity": "TEXT",
             "notNull": false
+          },
+          {
+            "fieldPath": "dateCreated",
+            "columnName": "dateCreated",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "CURRENT_TIMESTAMP"
           }
         ],
         "primaryKey": {
@@ -88,7 +101,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bd88a1ac2d505e8d99a8d348a4b4899c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '39b10b0cc10d4bf984091f0b5da04377')"
     ]
   }
 }

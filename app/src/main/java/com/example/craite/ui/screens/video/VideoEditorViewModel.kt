@@ -1,10 +1,29 @@
 package com.example.craite.ui.screens.video
 
+import android.content.ContentValues
 import android.content.Context
+import android.media.MediaScannerConnection
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.transformer.Composition
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.EditSettings
 import com.example.craite.data.EditSettingsRepository
@@ -15,15 +34,20 @@ import com.example.craite.data.GeminiResult
 import com.example.craite.data.MediaEffect
 import com.example.craite.data.RetrofitClient
 import com.example.craite.data.VideoEdit
+import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
+import com.example.craite.utils.Helpers
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.File
 
+@UnstableApi
 class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
     private val _uiState = MutableStateFlow(initialEditSettings)
@@ -38,6 +62,66 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _downloadButtonEnabled = MutableStateFlow(false)
     val downloadButtonEnabled: StateFlow<Boolean> = _downloadButtonEnabled.asStateFlow()
 
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    private val _totalDuration = MutableStateFlow(0L)
+    val totalDuration: StateFlow<Long> = _totalDuration.asStateFlow()
+
+    private val _intervals = MutableStateFlow<List<Long>>(emptyList())
+    val intervals: StateFlow<List<Long>> = _intervals.asStateFlow()
+
+    private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
+
+    private val _composition = MutableStateFlow<Composition?>(null)
+    val composition: StateFlow<Composition?> = _composition.asStateFlow()
+
+    private val _mediaSources = MutableStateFlow<List<MediaSource>>(emptyList())
+    val mediaSources: StateFlow<List<MediaSource>> = _mediaSources.asStateFlow()
+
+    private val _timeline = MutableStateFlow<Timeline?>(null)
+    val timeline: StateFlow<Timeline?> = _timeline.asStateFlow()
+
+    fun createMediaSources(context: Context, mediaUris: List<Uri>) {
+        viewModelScope.launch {
+            val sources = mediaUris.map { uri ->
+                try {
+                    ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
+                        .createMediaSource(MediaItem.fromUri(uri))
+                } catch (e: Exception) {
+                    Log.e("VideoEditorViewModel", "Error creating MediaSource for $uri: ${e.message}")
+                    null
+                }
+            }.filterNotNull()
+            _mediaSources.value = sources
+        }
+    }
+
+    fun updateTimeline(exoPlayer: ExoPlayer) {
+        viewModelScope.launch {
+            _timeline.value = exoPlayer.currentTimeline
+        }
+    }
+
+
+
+    fun updateEditSettings(newEditSettings: EditSettings, context: Context, mediaMap: Map<String, String>) {
+        _uiState.value = newEditSettings
+        _downloadButtonEnabled.value = true
+
+
+    }
+
+    // Playback controls
+    fun playVideo() {
+        _isPlaying.value = true
+    }
+
+    fun pauseVideo() {
+        _isPlaying.value = false
+    }
+
+    // Dialog controls
     fun showProgressDialog() {
         _showProgressDialog.value = true
     }
@@ -46,50 +130,43 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
         _showProgressDialog.value = false
     }
 
+    // Update settings
     private fun updateEditSettings(newEditSettings: EditSettings) {
         _uiState.value = newEditSettings
         _downloadButtonEnabled.value = true // Enable download button when edits are available
     }
 
-    fun setCurrentMediaItemIndex(index: Any) {
-        _currentMediaItemIndex.value = index as Int
+    // Update total duration
+    fun updateTotalDuration(duration: Long) {
+        _totalDuration.value = duration
+        // Recalculate intervals when totalDuration changes
+        _intervals.value = Helpers.calculateIntervals(duration)
     }
 
-    fun launch(block: suspend () -> Unit) {
-        viewModelScope.launch {
-            block()
-        }
+    // Set current media item index
+    fun setCurrentMediaItemIndex(index: Int) {
+        _currentMediaItemIndex.value = index
     }
 
-    private val repository: EditSettingsRepository =
-        EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
-
+    // Fetch edit settings
     fun fetchEditSettings(userId: String, prompt: String, projectId: Int, promptId: String) {
-        Log.d(
-            "VideoEditViewModel",
-            "Fetching edit settings for user: $userId, prompt: $prompt, project: $projectId"
-        )
+        Log.d("VideoEditViewModel", "Fetching edit settings for user: $userId, prompt: $prompt, project: $projectId")
         viewModelScope.launch {
-            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId))
-                .collect { result ->
-                    when (result) {
-                        is GeminiResult.Success -> {
-                            Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
-                            result.data?.let { updateEditSettings(it) }
-                        }
-                        is GeminiResult.Error -> { // Handle the Error case
-                            Log.e(
-                                "VideoEditViewModel",
-                                "Error fetching edit settings: ${result.message}"
-                            )
-                            // Handle the error appropriately (e.g., show a Snackbar)
-                            // Example: showSnackbar { Text("Error fetching edit settings: ${result.message}") }
-                        }
+            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId)).collect { result ->
+                when (result) {
+                    is GeminiResult.Success -> {
+                        Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
+                        result.data?.let { updateEditSettings(it) }
+                    }
+                    is GeminiResult.Error -> {
+                        Log.e("VideoEditViewModel", "Error fetching edit settings: ${result.message}")
                     }
                 }
+            }
         }
     }
 
+    // Fetch and save Gemini response
     fun fetchAndSaveGeminiResponse(
         userId: String,
         projectId: Int,
@@ -109,62 +186,40 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
                     val documentSnapshot = docRef.get().await()
                     if (documentSnapshot.exists()) {
-                        val geminiResponseJson =
-                            documentSnapshot.get("geminiResponse") as? Map<*, *>
-                        if (geminiResponseJson != null) {
-                            Log.d(
-                                "VideoEditViewModel",
-                                "Gemini response found: $geminiResponseJson"
-                            )
-                            val editSettings = parseEditSettingsFromJson(geminiResponseJson)
-                            if (editSettings != null) { // Check if editSettings is not null
-                                editSettings?.let { settings ->
-                                    val geminiResponse = GeminiResponse(settings)
-                                    viewModelScope.launch {
-                                        projectDatabase.projectDao()
-                                            .updateGeminiResponse(projectId, geminiResponse)
-                                        Log.d(
-                                            "VideoEditViewModel",
-                                            "Gemini response saved to Room database"
-                                        )
-                                    }
-                                }
-                            } else {
-                                // Handle the case where parsing failed (e.g., show an error message)
-                                Log.e("VideoEditViewModel", "Error parsing edit settings from JSON")
-//                                showSnackbar { Text("Error parsing edit settings") }
-                            }
+                        val geminiResponseJson = documentSnapshot.get("geminiResponse") as? Map<*, *>
+                        val editSettings = geminiResponseJson?.let { parseEditSettingsFromJson(it) }
 
+                        if (editSettings != null) {
+                            Log.d("VideoEditViewModel", "Edit settings parsed: $editSettings")
+                            val geminiResponse = GeminiResponse(editSettings)
+
+                            // Update both GeminiResponse and EditSettings in the database
+                            projectDatabase.projectDao().updateGeminiResponse(projectId, geminiResponse)
+                            projectDatabase.projectDao().updateEditingSettings(projectId, editSettings)
+                            Log.d("VideoEditViewModel", "Gemini response and EditSettings updated in Room database")
+                            val project = projectDatabase.projectDao().getProjectById(projectId)
+                            Log.d("VideoEditViewModel", "Edit settings: ${project.first().editingSettings}")
+
+                            // Update the UI state with the fetched EditSettings
+                            _uiState.value = editSettings
                         } else {
-                            Log.e(
-                                "VideoEditViewModel",
-                                "Gemini response not found in Firestore document"
-                            )
-                            // Handle error: Gemini response field not found
-                            // Example: showSnackbar { Text("Gemini response not found") }
+                            Log.e("VideoEditViewModel", "Error parsing edit settings from JSON")
+                            // Handle parsing error (e.g., show a Snackbar)
                         }
                     } else {
                         Log.e("VideoEditViewModel", "Firestore document not found")
-                        // Handle error: Firestore document not found
-                        // Example: showSnackbar { Text("Firestore document not found") }
+                        // Handle document not found error (e.g., show a Snackbar)
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
                 Log.e("VideoEditViewModel", "Error fetching/saving edit settings: ${e.message}")
-                // Handle error fetching/saving edit settings
-                // Example: showSnackbar { Text("Error fetching/saving edit settings") }
+                // Handle general error (e.g., show a Snackbar)
             }
         }
     }
 
-    fun fetchAndApplyFirestoreEdits(
-        userId: String,
-        projectId: Int,
-        promptId: String,
-        mediaNames: Map<String, String>,
-        context: Context
-    ) {
+    // Fetch and apply Firestore edits
+    fun fetchAndApplyFirestoreEdits(userId: String, projectId: Int, promptId: String, mediaNames: Map<String, String>, context: Context) {
         viewModelScope.launch {
             showProgressDialog()
             try {
@@ -177,38 +232,27 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
                 val documentSnapshot = docRef.get().await()
                 if (documentSnapshot.exists()) {
-                    val geminiResponseJson =
-                        documentSnapshot.get("geminiResponse") as? Map<String, Any>
+                    val geminiResponseJson = documentSnapshot.get("geminiResponse") as? Map<*, *>
                     if (geminiResponseJson != null) {
                         val editSettings = parseEditSettingsFromJson(geminiResponseJson)
                         editSettings?.let { settings ->
                             updateEditSettings(settings)
-
                         }
                     } else {
-                        Log.e(
-                            "VideoEditViewModel",
-                            "Gemini response not found in Firestore document"
-                        )
-                        // Handle error: Gemini response field not found
-                        // Example: showSnackbar { Text("Gemini response not found") }
+                        Log.e("VideoEditViewModel", "Gemini response not found in Firestore document")
                     }
                 } else {
                     Log.e("VideoEditViewModel", "Firestore document not found")
-                    // Handle error: Firestore document not found
-                    // Example: showSnackbar { Text("Firestore document not found") }
                 }
             } catch (e: Exception) {
                 Log.e("VideoEditViewModel", "Error fetching edit settings: ${e.message}")
-                // Handle error fetching edit settings
-                // Example: showSnackbar { Text("Error fetching edit settings") }
             } finally {
                 hideProgressDialog()
             }
         }
     }
 
-    // Helper function to parse JSON into EditSettings
+    // Parse JSON into EditSettings
     private fun parseEditSettingsFromJson(json: Map<*, *>?): EditSettings? {
         return try {
             val videoEditsJson = json?.get("video_edits") as? List<Map<String, Any>>
@@ -219,8 +263,7 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                     effects = (videoEditJson["effects"] as? List<Map<String, Any>>)?.map { effectJson ->
                         MediaEffect(
                             name = effectJson["name"] as? String ?: "",
-                            adjustment = (effectJson["adjustment"] as? List<Double>)?.map { it.toFloat() }
-                                ?: emptyList()
+                            adjustment = (effectJson["adjustment"] as? List<Double>)?.map { it.toFloat() } ?: emptyList()
                         )
                     } ?: emptyList(),
                     end_time = videoEditJson["end_time"] as? Double ?: 0.0,
@@ -244,9 +287,160 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
         }
     }
 
-    // Helper function to show a Snackbar (remind lewis to design it)
-    // Example usage: showSnackbar { Text("Error message") }
+    // Export video
+    fun exportVideo(context: Context, project: Project?, editSettings: EditSettings, exoPlayer: ExoPlayer) {
+        Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
+        showProgressDialog()
+        viewModelScope.launch {
+            val videoEditor = VideoEditor()
+            val mergeResult = project?.let {
+                videoEditor.trimAndMergeToTempFile(
+                    context,
+                    editSettings,
+                    it.mediaNames // Pass the mediaNameMap
+                )
+            }
+
+            if (mergeResult != null) {
+                mergeResult.onSuccess { mergedVideoPath ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        // MediaStore (Android 10 and above)
+                        val contentValues = ContentValues().apply {
+                            put(
+                                MediaStore.MediaColumns.DISPLAY_NAME,
+                                "merged_video_${System.currentTimeMillis()}.mp4"
+                            )
+                            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                            put(
+                                MediaStore.MediaColumns.RELATIVE_PATH,
+                                Environment.DIRECTORY_MOVIES
+                            )
+                        }
+
+                        val resolver = context.contentResolver
+                        val uri = resolver.insert(
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            contentValues
+                        )
+
+                        uri?.let { videoUri ->
+                            resolver.openOutputStream(videoUri)?.use { outputStream ->
+                                File(mergedVideoPath).inputStream().use { inputStream ->
+                                    inputStream.copyTo(outputStream)
+                                }
+                                File(mergedVideoPath).delete() // Delete temporary file
+                                Log.d("VideoEditorViewModel", "Video saved to MediaStore: $videoUri")
+                                Toast.makeText(
+                                    context,
+                                    "Video saved to MediaStore: $videoUri",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+
+                                // Update ExoPlayer with merged video URI (if needed)
+                                val mergedMediaItem = MediaItem.fromUri(videoUri)
+                                exoPlayer.setMediaItem(mergedMediaItem)
+                                exoPlayer.prepare()
+                                exoPlayer.playWhenReady = true
+                            }
+                        } ?: run {
+                            Log.e("VideoEditorViewModel", "Error saving to MediaStore: URI is null")
+                            Toast.makeText(
+                                context,
+                                "Error saving to MediaStore",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } else {
+                        // Legacy Storage (Older Android versions)
+                        MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(mergedVideoPath), // Pass the file path directly
+                            arrayOf("video/mp4"),
+                            null
+                        )
+                        Log.d("VideoEditorViewModel", "Video saved to: $mergedVideoPath")
+                        Toast.makeText(
+                            context,
+                            "Video saved to: $mergedVideoPath",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // Update ExoPlayer with merged video file path (if needed)
+                        val mergedMediaItem = MediaItem.fromUri(Uri.fromFile(File(mergedVideoPath)))
+                        exoPlayer.setMediaItem(mergedMediaItem)
+                        exoPlayer.prepare()
+                        exoPlayer.playWhenReady = true
+                    }
+                }.onFailure { exception ->
+                    Log.e("VideoEditorViewModel", "Error merging videos: ${exception.message}")
+                    Toast.makeText(context, "Error merging videos", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            hideProgressDialog()
+        }
+    }
+
+    // Function to handle Get Gemini Edits button click
+    fun getGeminiEdits(userId: String, project: Project?, projectDatabase: ProjectDatabase) {
+        if (project != null) {
+            fetchAndSaveGeminiResponse(
+                userId,
+                project.id,
+                project.promptId,
+                projectDatabase
+            )
+        }
+    }
+
+    // Function to handle Apply Firestore Edits button click
+    fun applyFirestoreEdits(userId: String, project: Project?, context: Context) {
+        Log.d("VideoEditorViewModel", project?.mediaNames.toString())
+        Log.d("VideoEditorViewModel", project?.media.toString())
+
+        if (project != null) {
+            fetchAndApplyFirestoreEdits(
+                userId,
+                project.id,
+                project.promptId ?: "",
+                project.mediaNames,
+                context
+            )
+        }
+
+    }
+
+    // Show Snackbar (Placeholder for Snackbar implementation)
     private fun showSnackbar(message: @Composable () -> Unit) {
-        // Implement  Snackbar logic here
+        // Implement Snackbar logic here
+    }
+
+    fun changeResolution(context: Context, resolution: String, exoPlayer: ExoPlayer) {
+        viewModelScope.launch {
+            // 1. Get the current video file path
+            val currentVideoPath = "" // ... (Get the path of the video being played) ...
+
+            // 2. Create a temporary output file path
+            val outputFile = File.createTempFile("transcoded_video", ".mp4", context.cacheDir)
+            val outputFilePath = outputFile.absolutePath
+
+            // 3. Build the FFmpeg command
+            val command = "-i $currentVideoPath -s $resolution -c:v libx264 -crf 23 -preset ultrafast -c:a copy $outputFilePath"
+
+            // 4. Execute the FFmpeg command using FFmpegKit
+            FFmpegKit.executeAsync(command) { session ->
+                val returnCode = session.returnCode
+                if (ReturnCode.isSuccess(returnCode)) {
+                    // 5. Transcoding successful, update ExoPlayer
+                    val newMediaItem = MediaItem.fromUri(Uri.fromFile(outputFile))
+                    exoPlayer.setMediaItem(newMediaItem)
+                    exoPlayer.prepare()
+                } else {
+                    // 6. Handle transcoding error
+                    Log.e("VideoEditorViewModel", "FFmpegKit error: ${session.failStackTrace}")
+                    // ... (Display error message to the user) ...
+                }
+            }
+        }
     }
 }

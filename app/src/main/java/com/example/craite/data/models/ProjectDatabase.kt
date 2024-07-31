@@ -4,6 +4,7 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.craite.utils.ProjectTypeConverters
 
 //@Database(entities = [Project::class], version = 4,
@@ -14,4 +15,5 @@ import com.example.craite.utils.ProjectTypeConverters
 @TypeConverters(ProjectTypeConverters::class)
 abstract class ProjectDatabase: RoomDatabase() {
     abstract fun projectDao(): ProjectDao
+
 }

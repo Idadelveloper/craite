@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.example.craite.data.EditSettings
 import com.example.craite.data.GeminiResponse
 import kotlinx.coroutines.flow.Flow
 
@@ -32,8 +33,8 @@ interface ProjectDao {
     @Query("UPDATE Project SET geminiResponse = :geminiResponse WHERE id = :projectId")
     suspend fun updateGeminiResponse(projectId: Int, geminiResponse: String)
 
-    @Query("UPDATE Project SET editingSettings = :editingSettings WHERE id = :projectId")
-    suspend fun updateEditingSettings(projectId: Int, editingSettings: String)
+    @Query("UPDATE Project SET editingSettings = :editSettings WHERE id = :projectId")
+    suspend fun updateEditingSettings(projectId: Int, editSettings: EditSettings)
 
     @Query("UPDATE Project SET prompt = :prompt, promptId = :promptId WHERE id = :projectId")
     suspend fun updatePromptData(projectId: Int, prompt: String, promptId: String)
@@ -49,4 +50,10 @@ interface ProjectDao {
 
     @Query("UPDATE Project SET thumbnailPath = :thumbnailPath WHERE id = :projectId")
     suspend fun updateThumbnailPath(projectId: Int, thumbnailPath: String)
+
+    @Query("UPDATE Project SET uploadCompleted = :uploadCompleted WHERE id = :projectId")
+    suspend fun updateUploadCompleted(projectId: Int, uploadCompleted: Boolean)
+
+    @Query("UPDATE Project SET audioPath = :audioPath WHERE id = :projectId")
+    suspend fun updateAudioPath(projectId: Int, audioPath: String?)
 }

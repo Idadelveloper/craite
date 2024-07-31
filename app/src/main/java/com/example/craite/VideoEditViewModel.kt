@@ -109,51 +109,35 @@ class VideoEditViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
                     val documentSnapshot = docRef.get().await()
                     if (documentSnapshot.exists()) {
-                        val geminiResponseJson =
-                            documentSnapshot.get("geminiResponse") as? Map<*, *>
-                        if (geminiResponseJson != null) {
-                            Log.d(
-                                "VideoEditViewModel",
-                                "Gemini response found: $geminiResponseJson"
-                            )
-                            val editSettings = parseEditSettingsFromJson(geminiResponseJson)
-                            if (editSettings != null) { // Check if editSettings is not null
-                                editSettings?.let { settings ->
-                                    val geminiResponse = GeminiResponse(settings)
-                                    viewModelScope.launch {
-                                        projectDatabase.projectDao()
-                                            .updateGeminiResponse(projectId, geminiResponse)
-                                        Log.d(
-                                            "VideoEditViewModel",
-                                            "Gemini response saved to Room database"
-                                        )
-                                    }
-                                }
-                            } else {
-                                // Handle the case where parsing failed (e.g., show an error message)
-                                Log.e("VideoEditViewModel", "Error parsing edit settings from JSON")
-//                                showSnackbar { Text("Error parsing edit settings") }
-                            }
+                        val geminiResponseJson = documentSnapshot.get("geminiResponse") as? Map<*, *>
+                        val editSettings = geminiResponseJson?.let { parseEditSettingsFromJson(it) }
 
+                        if (editSettings != null) {
+                            Log.d("VideoEditViewModel", "Edit settings parsed: $editSettings")
+                            val geminiResponse = GeminiResponse(editSettings)
+
+                            // Update both GeminiResponse and EditSettings in the database
+                            projectDatabase.projectDao().updateGeminiResponse(projectId, geminiResponse)
+                            projectDatabase.projectDao().updateEditingSettings(projectId, editSettings)
+                            Log.d("VideoEditViewModel", "Gemini response and EditSettings updated in Room database")
+                            Log.d("VideoEditViewModel", "editSettings: ${projectDatabase.projectDao().getProjectById(projectId.toInt())}")
+
+                            Log.d("VideoEditViewModel", "Gemini response and EditSettings saved to Room database")
+
+                            // Update the UI state with the fetched EditSettings
+                            _uiState.value = editSettings
                         } else {
-                            Log.e(
-                                "VideoEditViewModel",
-                                "Gemini response not found in Firestore document"
-                            )
-                            // Handle error: Gemini response field not found
-                            // Example: showSnackbar { Text("Gemini response not found") }
+                            Log.e("VideoEditViewModel", "Error parsing edit settings from JSON")
+                            // Handle parsing error (e.g., show a Snackbar)
                         }
                     } else {
                         Log.e("VideoEditViewModel", "Firestore document not found")
-                        // Handle error: Firestore document not found
-                        // Example: showSnackbar { Text("Firestore document not found") }
+                        // Handle document not found error (e.g., show a Snackbar)
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
                 Log.e("VideoEditViewModel", "Error fetching/saving edit settings: ${e.message}")
-                // Handle error fetching/saving edit settings
-                // Example: showSnackbar { Text("Error fetching/saving edit settings") }
+                // Handle general error (e.g., show a Snackbar)
             }
         }
     }
