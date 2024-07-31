@@ -198,7 +198,6 @@ class NewProjectViewModel : ViewModel() {
                                 }
 
                                 override fun onTranscodeFailed(exception: Throwable) {
-                                    // *** YOUR EXISTING FAILURE LOGIC (if different) HERE ***
                                     Log.e(
                                         "FirebaseStorage",
                                         "Compression failed: ${exception.message}"

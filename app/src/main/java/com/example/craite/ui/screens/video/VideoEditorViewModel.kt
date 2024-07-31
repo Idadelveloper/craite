@@ -42,6 +42,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.File
@@ -166,7 +167,12 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     }
 
     // Fetch and save Gemini response
-    fun fetchAndSaveGeminiResponse(userId: String, projectId: Int, promptId: String?, projectDatabase: ProjectDatabase) {
+    fun fetchAndSaveGeminiResponse(
+        userId: String,
+        projectId: Int,
+        promptId: String?,
+        projectDatabase: ProjectDatabase
+    ) {
         viewModelScope.launch {
             try {
                 promptId?.let {
@@ -181,25 +187,33 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                     val documentSnapshot = docRef.get().await()
                     if (documentSnapshot.exists()) {
                         val geminiResponseJson = documentSnapshot.get("geminiResponse") as? Map<*, *>
-                        if (geminiResponseJson != null) {
-                            Log.d("VideoEditViewModel", "Gemini response found: $geminiResponseJson")
-                            val editSettings = parseEditSettingsFromJson(geminiResponseJson)
-                            if (editSettings != null) {
-                                val geminiResponse = GeminiResponse(editSettings)
-                                projectDatabase.projectDao().updateGeminiResponse(projectId, geminiResponse)
-                                Log.d("VideoEditViewModel", "Gemini response saved to Room database")
-                            } else {
-                                Log.e("VideoEditViewModel", "Error parsing edit settings from JSON")
-                            }
+                        val editSettings = geminiResponseJson?.let { parseEditSettingsFromJson(it) }
+
+                        if (editSettings != null) {
+                            Log.d("VideoEditViewModel", "Edit settings parsed: $editSettings")
+                            val geminiResponse = GeminiResponse(editSettings)
+
+                            // Update both GeminiResponse and EditSettings in the database
+                            projectDatabase.projectDao().updateGeminiResponse(projectId, geminiResponse)
+                            projectDatabase.projectDao().updateEditingSettings(projectId, editSettings)
+                            Log.d("VideoEditViewModel", "Gemini response and EditSettings updated in Room database")
+                            val project = projectDatabase.projectDao().getProjectById(projectId)
+                            Log.d("VideoEditViewModel", "Edit settings: ${project.first().editingSettings}")
+
+                            // Update the UI state with the fetched EditSettings
+                            _uiState.value = editSettings
                         } else {
-                            Log.e("VideoEditViewModel", "Gemini response not found in Firestore document")
+                            Log.e("VideoEditViewModel", "Error parsing edit settings from JSON")
+                            // Handle parsing error (e.g., show a Snackbar)
                         }
                     } else {
                         Log.e("VideoEditViewModel", "Firestore document not found")
+                        // Handle document not found error (e.g., show a Snackbar)
                     }
                 }
             } catch (e: Exception) {
                 Log.e("VideoEditViewModel", "Error fetching/saving edit settings: ${e.message}")
+                // Handle general error (e.g., show a Snackbar)
             }
         }
     }
