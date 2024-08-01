@@ -165,6 +165,9 @@ dependencies {
     // Transcoder
     implementation("com.otaliastudios:transcoder:0.10.5")
 
+    implementation("com.writingminds:FFmpegAndroid:0.3.2")
+
+
 
 
     implementation(libs.material3)

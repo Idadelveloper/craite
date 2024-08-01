@@ -7,12 +7,21 @@ import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.add
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.transform
+import androidx.lifecycle.get
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.TextureOverlay
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ConcatenatingMediaSource
+import androidx.media3.exoplayer.source.ConcatenatingMediaSource2
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -236,6 +245,99 @@ class VideoEditor {
             }
         }
         return effects
+    }
+
+    @OptIn(UnstableApi::class)
+    fun previewEditSettings(
+        context: Context,
+        exoPlayer: ExoPlayer,
+        editSettings: EditSettings,
+        mediaNameMap: Map<String, String>,
+        loopPlayback: Boolean = false, // Optional parameter for looping
+        autoPlay: Boolean = true // Optional parameter for autoplay
+    ) {
+        exoPlayer.clearMediaItems()
+
+        val mediaItems = if (editSettings.video_edits.isNotEmpty()) {
+            // Preview with EditSettings
+            val sortedVideoEdits = editSettings.video_edits.sortedBy { it.id }
+            Log.d("VideoEditor", "Sorted Video Edits: $sortedVideoEdits")
+            sortedVideoEdits.mapNotNull { videoEdit ->
+                val videoName = videoEdit.video_name
+                val filePath = mediaNameMap[videoName]
+                filePath?.let {
+                    val file = File(it)
+                    if (file.exists()) {
+                        val inputUri = Uri.fromFile(file)
+                        Log.d("VideoEditor", "Processing video at: $filePath")
+
+                        // Create MediaItem with clipping
+                        val mediaItemBuilder = MediaItem.Builder().setUri(inputUri)
+                        val startTimeMillis = (videoEdit.start_time * 1000).toLong()
+                        val endTimeMillis = (videoEdit.end_time * 1000).toLong()
+                        mediaItemBuilder.setClippingConfiguration(
+                            ClippingConfiguration.Builder()
+                                .setStartPositionMs(startTimeMillis)
+                                .setEndPositionMs(endTimeMillis)
+                                .build()
+                        )
+
+                        // Apply effects and text overlays
+                        val effects = mapMediaEffectsToEffects(videoEdit.effects).toMutableList()
+                        val textureOverlays = videoEdit.text.map { textOverlay ->
+                            videoEffects.addStaticTextOverlay(
+                                text = textOverlay.text,
+                                fontSize = 50,
+                                textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
+                                backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
+                            )
+                        }
+                        if (textureOverlays.isNotEmpty()) {
+                            for (overlay in textureOverlays) {
+                                effects += OverlayEffect(ImmutableList.of(overlay))
+                            }
+                        }
+
+                        // Create EditedMediaItem and extract MediaItem
+                        EditedMediaItem.Builder(mediaItemBuilder.build())
+                            .setEffects(Effects(emptyList(), effects))
+                            .build()
+                            .mediaItem
+                    } else {
+                        Log.e("VideoEditor", "File not found: $filePath")
+                        null
+                    }
+                }
+            }
+        } else {
+            // Preview raw videos using file paths
+            mediaNameMap.values.mapNotNull { filePath ->
+                val file = File(filePath)
+                if (file.exists()) {
+                    MediaItem.fromUri(Uri.fromFile(file))
+                } else {
+                    Log.e("VideoEditor", "File not found: $filePath")
+                    null
+                }
+            }
+        }
+
+        // Attach the listener immediately before preparing the player
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                Log.d("VideoEditor", "Playback State Changed: $playbackState")
+                // ... (Your existing code to handle state changes) ...
+            }
+
+            // ... (Other listener methods) ...
+        }
+        exoPlayer.addListener(listener)
+
+        // Set the MediaItems to ExoPlayer and prepare
+        exoPlayer.setMediaItems(mediaItems)
+        exoPlayer.repeatMode = if (loopPlayback) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
+        exoPlayer.playWhenReady = autoPlay
+        exoPlayer.prepare()
     }
 }
 
