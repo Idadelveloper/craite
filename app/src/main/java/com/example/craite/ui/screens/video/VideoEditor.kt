@@ -12,6 +12,7 @@ import androidx.lifecycle.get
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
@@ -251,14 +252,16 @@ class VideoEditor {
         context: Context,
         exoPlayer: ExoPlayer,
         editSettings: EditSettings,
-        mediaNameMap: Map<String, String>
+        mediaNameMap: Map<String, String>,
+        loopPlayback: Boolean = false, // Optional parameter for looping
+        autoPlay: Boolean = true // Optional parameter for autoplay
     ) {
-        // Clear any existing media items in ExoPlayer
         exoPlayer.clearMediaItems()
 
         val mediaItems = if (editSettings.video_edits.isNotEmpty()) {
             // Preview with EditSettings
             val sortedVideoEdits = editSettings.video_edits.sortedBy { it.id }
+            Log.d("VideoEditor", "Sorted Video Edits: $sortedVideoEdits")
             sortedVideoEdits.mapNotNull { videoEdit ->
                 val videoName = videoEdit.video_name
                 val filePath = mediaNameMap[videoName]
@@ -266,6 +269,7 @@ class VideoEditor {
                     val file = File(it)
                     if (file.exists()) {
                         val inputUri = Uri.fromFile(file)
+                        Log.d("VideoEditor", "Processing video at: $filePath")
 
                         // Create MediaItem with clipping
                         val mediaItemBuilder = MediaItem.Builder().setUri(inputUri)
@@ -278,21 +282,21 @@ class VideoEditor {
                                 .build()
                         )
 
-                        // Apply effects and text overlays (same as before)
+                        // Apply effects and text overlays
                         val effects = mapMediaEffectsToEffects(videoEdit.effects).toMutableList()
                         val textureOverlays = videoEdit.text.map { textOverlay ->
-                        videoEffects.addStaticTextOverlay(
-                            text = textOverlay.text,
-                            fontSize = 50,
-                            textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
-                            backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
-                        )
-                    }
-                    if (textureOverlays.isNotEmpty()) {
-                        for (overlay in textureOverlays) {
-                            effects += OverlayEffect(ImmutableList.of(overlay))
+                            videoEffects.addStaticTextOverlay(
+                                text = textOverlay.text,
+                                fontSize = 50,
+                                textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
+                                backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
+                            )
                         }
-                    }
+                        if (textureOverlays.isNotEmpty()) {
+                            for (overlay in textureOverlays) {
+                                effects += OverlayEffect(ImmutableList.of(overlay))
+                            }
+                        }
 
                         // Create EditedMediaItem and extract MediaItem
                         EditedMediaItem.Builder(mediaItemBuilder.build())
@@ -318,8 +322,21 @@ class VideoEditor {
             }
         }
 
-        // Set the MediaItems to ExoPlayer
+        // Attach the listener immediately before preparing the player
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                Log.d("VideoEditor", "Playback State Changed: $playbackState")
+                // ... (Your existing code to handle state changes) ...
+            }
+
+            // ... (Other listener methods) ...
+        }
+        exoPlayer.addListener(listener)
+
+        // Set the MediaItems to ExoPlayer and prepare
         exoPlayer.setMediaItems(mediaItems)
+        exoPlayer.repeatMode = if (loopPlayback) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
+        exoPlayer.playWhenReady = autoPlay
         exoPlayer.prepare()
     }
 }
