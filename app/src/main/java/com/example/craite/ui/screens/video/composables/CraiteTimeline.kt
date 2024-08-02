@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,15 +34,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
@@ -67,13 +75,13 @@ fun CraiteTimeline(timeline: Timeline, exoPlayer: ExoPlayer, context: Context) {
             for (i in 0 until timeline.windowCount) {
                 val clipUri = getClipUriFromExoPlayer(exoPlayer, i)
                 if (clipUri != null) {
-                    frames[i] = loadFramesForClip(context, clipUri, 10) // Load frames for clip i
+                    frames[i] = loadFramesForClip(context, clipUri, 10)
                 } else {
                     Log.e("CraiteTimeline", "Clip URI not found for index $i")
                 }
             }
         }
-        // Time Intervals Display
+
         TimeIntervalDisplay(timeline)
 
         HorizontalDivider(thickness = 1.dp, color = AppColor().neutral30)
@@ -89,13 +97,28 @@ fun CraiteTimeline(timeline: Timeline, exoPlayer: ExoPlayer, context: Context) {
                 timeline.getPeriod(index, period)
                 val clipDuration = period.durationUs / 1000000.0
 
-                val clipFrames = frames[index] // Get frames for the current clip
-                ClipItem(index, clipDuration, exoPlayer, clipFrames) {
-                    // Handle clip interaction (e.g., seeking, trimming)
-                    val window = Timeline.Window()
-                    timeline.getWindow(index, window)
-                    exoPlayer.seekTo(window.defaultPositionMs)
-                }
+                val clipFrames = frames[index]
+                ClipItem(
+                    index = index,
+                    duration = clipDuration,
+                    exoPlayer = exoPlayer,
+                    frames = clipFrames,
+                    onClipClick = {
+                        val window = Timeline.Window()
+                        timeline.getWindow(index, window)
+                        exoPlayer.seekTo(window.defaultPositionMs)
+                    },
+                    onTrimStart = { clipIndex, trimStartTimeMs ->
+                        // Handle trim start for clipIndex at trimStartTimeMs
+                        Log.d("Trim", "Start Trim: Clip $clipIndex, Time: $trimStartTimeMs ms")
+                        // Implement your video trimming logic here
+                    },
+                    onTrimEnd = { clipIndex, trimEndTimeMs ->
+                        // Handle trim end for clipIndex at trimEndTimeMs
+                        Log.d("Trim", "End Trim: Clip $clipIndex, Time: $trimEndTimeMs ms")
+                        // Implement your video trimming logic here
+                    }
+                )
             }
         }
     }
@@ -103,30 +126,111 @@ fun CraiteTimeline(timeline: Timeline, exoPlayer: ExoPlayer, context: Context) {
 
 @OptIn(UnstableApi::class)
 @Composable
-fun ClipItem(index: Int, duration: Double, exoPlayer: ExoPlayer, frames: List<ImageBitmap?>?, onClipClick: () -> Unit) {
+fun ClipItem(
+    index: Int,
+    duration: Double,
+    exoPlayer: ExoPlayer,
+    frames: List<ImageBitmap?>?,
+    onClipClick: () -> Unit,
+    onTrimStart: (Int, Long) -> Unit,
+    onTrimEnd: (Int, Long) -> Unit
+) {
+    val density = LocalDensity.current
+    val itemWidthPx = with(density) { (frames?.size ?: 0) * (64.dp + 4.dp).toPx() }
+    var trimStartOffset by remember { mutableStateOf(0f) }
+    var trimEndOffset by remember { mutableStateOf(0f) }
 
-    val itemWidth = (frames?.size ?: 0) * (64.dp + 4.dp)
+    // Calculate the number of frames to display based on trim offsets
+    val numFramesToDisplay = remember(trimStartOffset, trimEndOffset) {
+        val totalFrames = frames?.size ?: 0
+        val startFrameIndex = (trimStartOffset / itemWidthPx * totalFrames).toInt()
+        val endFrameIndex = ((itemWidthPx - trimEndOffset) / itemWidthPx * totalFrames).toInt()
+        endFrameIndex - startFrameIndex
+    }
+
+    // Calculate the width of the Box based on the number of frames to display
+    val boxWidthPx = with(density) { numFramesToDisplay * (64.dp + 4.dp).toPx() }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(itemWidth)
+            .width(with(density) { itemWidthPx.toDp() }) // Use density.toDp()
             .clickable { onClipClick() }
             .border(1.dp, Color.Gray)
             .padding(4.dp)
     ) {
-        Row(
-            modifier = Modifier.height(64.dp)
+        // Trimmed Box
+        Box(
+            modifier = Modifier
+                .width(with(density){boxWidthPx.toDp()}) // Use density.toDp()
+                .height(64.dp)
+                .clip(RectangleShape)
+                .offset(x = trimStartOffset.dp)
         ) {
-            frames?.forEach { frame ->
-                if (frame != null) {
-                    Image(
-                        bitmap = frame,
-                        contentDescription = "Clip Thumbnail",
-                        modifier = Modifier.size(64.dp)
-                    )
+            // Display frames based on trim offsets
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .border(1.dp, Color.Gray) // Add border to LazyRow
+            ) {
+                items(numFramesToDisplay) { offset ->
+                    val frameIndex = (trimStartOffset / itemWidthPx * (frames?.size ?: 0)).toInt() + offset
+                    val frame = frames?.getOrNull(frameIndex)
+                    if (frame != null) {
+                        Image(
+                            bitmap = frame,
+                            contentDescription = "Clip Thumbnail",
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
                 }
             }
+
+            // Trim start handle
+            Box(
+                modifier = Modifier
+                    .width(8.dp)
+                    .height(64.dp)
+                    .background(Color.Red)
+                    .offset(x = trimStartOffset.dp)
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            val newTrimStartOffset = trimStartOffset + dragAmount.x
+                            if (newTrimStartOffset >= 0 &&
+                                newTrimStartOffset <= itemWidthPx - trimEndOffset
+                            ) {
+                                trimStartOffset = newTrimStartOffset
+                                val trimStartTimeMs =
+                                    (trimStartOffset / itemWidthPx) * (duration * 1000).toLong()
+                                onTrimStart(index, trimStartTimeMs.toLong())
+                            }
+                        }
+                    }
+            )
+
+            // Trim end handle
+            Box(
+                modifier = Modifier
+                    .width(8.dp)
+                    .height(64.dp)
+                    .background(Color.Red)
+                    .align(Alignment.CenterEnd)
+                    .offset(x = trimEndOffset.dp)
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            val newTrimEndOffset = trimEndOffset + dragAmount.x
+                            if (newTrimEndOffset >= 0 &&
+                                newTrimEndOffset <= itemWidthPx - trimStartOffset
+                            ) {
+                                trimEndOffset = newTrimEndOffset
+                                val trimEndTimeMs =
+                                    ((itemWidthPx - trimEndOffset) / itemWidthPx) * (duration * 1000).toLong()
+                                onTrimEnd(index, trimEndTimeMs.toLong())
+                            }
+                        }
+                    }
+            )
         }
 
         Text(text = "Clip $index (${String.format("%.2f", duration)}s)")

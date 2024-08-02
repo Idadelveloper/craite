@@ -56,7 +56,7 @@ android {
         var room = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
     packaging {
         resources {
@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.functions)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.androidx.foundation.layout.android)
     //  implementation(libs.androidx.material3.android) Remove Material 3 Android (M3 for Non Compose Android Dev)
     val lifecycleVersion = "2.8.1"
     val activityVersion = "1.9.0"
