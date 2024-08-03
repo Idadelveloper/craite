@@ -109,30 +109,34 @@ class NewProjectViewModel : ViewModel() {
                 // Create project with file paths
                 val project = Project(name = projectName, media = filePaths)
                 projectDao.insert(project)
+                val projectId = projectDao.getLastInsertedProject().id
                 Toast.makeText(context, "Successfully created project", Toast.LENGTH_SHORT).show()
 
-                // Generate and save thumbnail for the first video
-                if (uris.isNotEmpty()) {
-                    val firstVideoUri = uris[0]
-                    val thumbnailUri = getThumbnailUriFromVideo(context, firstVideoUri)
-                    val thumbnailPath = thumbnailUri.first?.toString() // Get the path from Uri
+                // Generate and save thumbnail for the first video (if available)
+                if (filePaths.isNotEmpty()) {
+                    val firstVideoPath = filePaths[0]
+                    val thumbnailResult = getThumbnailUriFromVideo(context, Uri.fromFile(File(firstVideoPath)))
+                    val thumbnailPath = thumbnailResult.first?.toString()
 
-                    // Update the project in the Room database with the thumbnail path
                     if (thumbnailPath != null) {
-                        val projectId = projectDao.getLastInsertedProject().id
                         projectDao.updateThumbnailPath(projectId, thumbnailPath)
                         Log.d("NewProjectViewModel", "Thumbnail path updated in Room database")
+                    } else {
+                        Log.e("NewProjectViewModel", "Failed to generate thumbnail")
+                        // Handle the error appropriately (e.g., display a message)
                     }
                 }
 
-                // Calculate total duration
-                val totalDurationMillis = calculateTotalDuration(context, uris)
+                // Calculate total duration (using file paths)
+                val totalDurationMillis = calculateTotalDurationFromFiles(context, filePaths)
                 val formattedDuration = formatDuration(totalDurationMillis)
 
                 // Update the project in the Room database with the total duration
-                val projectId = projectDao.getLastInsertedProject().id
                 projectDao.updateProjectDuration(projectId, formattedDuration)
                 Log.d("NewProjectViewModel", "Project duration updated in Room database")
+
+                // Initialize an empty mediaNames map (using file paths as keys)
+                val mediaNames = mutableMapOf<String, String>()
 
                 // Upload videos to cloud storage (using file paths)
                 val userFolderRef = storageRef.child("users/${user.uid}/projects/$projectId/videos")
@@ -140,85 +144,72 @@ class NewProjectViewModel : ViewModel() {
                 val uploadTasks = filePaths.mapIndexed { index, filePath ->
                     val fileName = "video_${index}_${System.currentTimeMillis()}.mp4"
                     val fileRef = userFolderRef.child(fileName)
+                    mediaNames[fileName] = filePath // Store the mapping (file path to itself)
 
                     // Create a temporary file for compressed video
-                    val compressedVideoFile =
-                        File.createTempFile("compressed_video_$index", ".mp4", context.cacheDir)
+                    val compressedVideoFile = File.createTempFile("compressed_video_$index", ".mp4", context.cacheDir)
 
                     // Compress video and save to temporary file (using async to avoid blocking)
                     val transcodeDeferred = async(Dispatchers.IO) {
-                        Transcoder.into(compressedVideoFile.absolutePath)
-                            .addDataSource(filePath)
-                            .setListener(object : TranscoderListener {
-                                override fun onTranscodeProgress(progress: Double) {
-                                    Log.d("FirebaseStorage", "Compression progress: $progress")
-                                }
+                        if (File(filePath).exists()) { // Check if file exists before compression
+                            Transcoder.into(compressedVideoFile.absolutePath)
+                                .addDataSource(filePath)
+                                // Add compression configuration options here (e.g., resolution, bitrate)
+                                .setListener(object : TranscoderListener {
+                                    override fun onTranscodeProgress(progress: Double) {
+                                        Log.d("FirebaseStorage", "Compression progress: $progress")
+                                        // You can update UI with progress here if needed (using withContext(Dispatchers.Main))
+                                    }
 
-                                override fun onTranscodeCompleted(successCode: Int) {
-                                    // Compression successful, initiate upload
-                                    val compressedVideoUri = Uri.fromFile(compressedVideoFile)
-                                    fileRef.putFile(compressedVideoUri)
-                                        .addOnSuccessListener {
-                                            // *** YOUR SUCCESS LOGIC HERE ***
-                                            videoNames[fileName] = filePaths[index]
-                                            Log.d(
-                                                "FirebaseStorage",
-                                                "File uploaded: ${fileRef.path}"
-                                            )
-                                            Toast.makeText(
-                                                context,
-                                                "File uploaded: ${fileRef.path}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                    override fun onTranscodeCompleted(successCode: Int) {
+                                        val compressedVideoUri = Uri.fromFile(compressedVideoFile)
+                                        fileRef.putFile(compressedVideoUri)
+                                            .addOnSuccessListener {
+                                                Log.d("FirebaseStorage", "File uploaded: ${fileRef.path}")
+                                                Toast.makeText(context, "File uploaded: ${fileRef.path}", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .addOnFailureListener { exception ->
+                                                Log.e("FirebaseStorage", "Upload failed: ${exception.message}")
+                                                Toast.makeText(context, "Upload failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                                compressedVideoFile.delete() // Delete even if upload fails
+                                            }
+                                            .addOnCompleteListener {
+                                                compressedVideoFile.delete() // Delete after upload attempt (success or failure)
+                                            }
+                                    }
 
-                                            // ... (Rest of your success logic) ...
+                                    override fun onTranscodeCanceled() {
+                                        Log.w("FirebaseStorage", "Compression canceled")
+                                        compressedVideoFile.delete() // Delete if compression is canceled
+                                    }
 
-                                            // Delete the temporary file after successful upload
-                                            compressedVideoFile.delete()
-                                        }
-                                        .addOnFailureListener { exception ->
-                                            // *** YOUR EXISTING FAILURE LOGIC HERE ***
-                                            Log.e(
-                                                "FirebaseStorage",
-                                                "Upload failed: ${exception.message}"
-                                            )
-                                            Toast.makeText(
-                                                context,
-                                                "Upload failed: ${exception.message}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-
-                                            // Delete the temporary file even if upload fails
-                                            compressedVideoFile.delete()
-                                        }
-                                }
-
-                                override fun onTranscodeCanceled() {
-                                    // Handle cancellation if needed
-                                }
-
-                                override fun onTranscodeFailed(exception: Throwable) {
-                                    Log.e(
-                                        "FirebaseStorage",
-                                        "Compression failed: ${exception.message}"
-                                    )
-                                    compressedVideoFile.delete()
-                                }
-                            })
-                            .transcode() // Start transcoding
+                                    override fun onTranscodeFailed(exception: Throwable) {
+                                        Log.e("FirebaseStorage", "Compression failed: ${exception.message}")
+                                        Toast.makeText(context, "Compression failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                        compressedVideoFile.delete() // Delete even if compression fails
+                                    }
+                                })
+                                .transcode()
+                        } else {
+                            Log.e("NewProjectViewModel", "File not found for compression: $filePath")
+                            null // Return null to indicate skipped upload
+                        }
                     }
 
-                    // Wait for transcoding to complete and return the UploadTask
-                    transcodeDeferred.await() // Wait for transcoding
-                    fileRef.putFile(Uri.fromFile(compressedVideoFile)) // Return the UploadTask
-                }
+                    // Wait for transcoding and return the UploadTask (or null if skipped)
+                    transcodeDeferred.await()
+                    if (File(compressedVideoFile.absolutePath).exists()) {
+                        fileRef.putFile(Uri.fromFile(compressedVideoFile))
+                    } else {
+                        null // Return null if compression failed or file doesn't exist
+                    }
+                }.filterNotNull() // Filter out null tasks (skipped uploads)
 
                 // Wait for all uploads to complete
                 Tasks.whenAllComplete(uploadTasks).addOnCompleteListener { task ->
                     if (task.isSuccessful && task.result.all { it.isSuccessful }) {
                         // All uploads successful
-                        Toast.makeText(context, "Videos uploaded successfully", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(context, "Videos uploaded successfully", Toast.LENGTH_SHORT).show()
 
                         // Send prompt and video directory to Firestore
                         val promptData = hashMapOf(
@@ -234,52 +225,38 @@ class NewProjectViewModel : ViewModel() {
                             .collection("projects")
                             .document(projectId.toString())
                             .collection("prompts")
-                            .document() // Generate a unique ID for the prompt document
+                            .document()
 
                         promptDocRef.set(promptData)
                             .addOnSuccessListener {
-                                Log.d(
-                                    "Firestore",
-                                    "Prompt data added with ID: ${promptDocRef.id}"
-                                )
-                                Toast.makeText(
-                                    context,
-                                    "Prompt data added with ID: ${promptDocRef.id}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Log.d("Firestore", "Prompt data added with ID: ${promptDocRef.id}")
+                                Toast.makeText(context, "Prompt data added with ID: ${promptDocRef.id}", Toast.LENGTH_SHORT).show()
 
-                                // Update prompt and promptId in the room database
+                                // Update prompt and promptId in the Room database
                                 viewModelScope.launch {
-                                    projectDao.updatePromptData(
-                                        projectId,
-                                        prompt,
-                                        promptDocRef.id
-                                    )
-                                    Log.d(
-                                        "NewProjectViewModel",
-                                        "Prompt data updated in room database"
-                                    )
+                                    projectDao.updatePromptData(projectId, prompt, promptDocRef.id)
+                                    Log.d("NewProjectViewModel", "Prompt data updated in Room database")
+
+                                    // Update the project in the Room database with the mediaNames map
+                                    projectDao.updateMediaNames(projectId, mediaNames)
+                                    projectDao.updateUploadCompleted(projectId, true)
+                                    Log.d("NewProjectViewModel", "Media names and upload status updated in Room database")
+
+                                    _projectCreationInitiated.value = true // Signal project creation completion
                                 }
                             }
                             .addOnFailureListener { e ->
                                 Log.e("Firestore", "Error adding prompt data", e)
-                                Toast.makeText(
-                                    context,
-                                    "Error saving prompt data",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(context, "Error saving prompt data", Toast.LENGTH_SHORT).show()
                             }
-
-                        _projectCreationInitiated.value = true
                     } else {
                         // Handle upload failures
                         Toast.makeText(context, "Error uploading videos", Toast.LENGTH_SHORT).show()
-                        // ... (Your failure handling logic) ...
                     }
                 }
             } catch (e: Exception) {
                 Toast.makeText(context, "Error creating project", Toast.LENGTH_SHORT).show()
-                // ... (Your error handling logic) ...
+                // Handle the error appropriately
             }
         }
     }
@@ -346,13 +323,13 @@ class NewProjectViewModel : ViewModel() {
         }
     }
 
-    private fun calculateTotalDuration(context: Context, uris: List<Uri>): Long {
+    // Helper function to calculate total duration from file paths
+    private fun calculateTotalDurationFromFiles(context: Context, filePaths: List<String>): Long {
         var totalDurationMillis = 0L
-        for (uri in uris) {
+        for (filePath in filePaths) {
             val retriever = MediaMetadataRetriever()
-            retriever.setDataSource(context, uri)
-            val durationStr =
-                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            retriever.setDataSource(filePath)
+            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             durationStr?.toLongOrNull()?.let {
                 totalDurationMillis += it
             }

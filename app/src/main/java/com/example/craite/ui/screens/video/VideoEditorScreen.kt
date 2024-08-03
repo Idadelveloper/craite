@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -60,6 +61,7 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.upstream.Loader.Loadable
 import androidx.navigation.NavController
 import com.example.craite.VideoEditor
+import com.example.craite.data.EditSettings
 import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.generateFakeEditSettings
@@ -87,15 +89,13 @@ fun VideoEditorScreen(
 ) {
     val context = LocalContext.current
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
-    val viewModel = remember {
-        VideoEditorViewModel(generateFakeEditSettings(project?.media?.size ?: 0))
-    }
-    val currentMediaIndex by viewModel.currentMediaItemIndex.collectAsState()
-    val mediaUris = project?.media?.map { Uri.fromFile(File(it)) }
-    val mediaItemMap = mediaUris?.indices?.associateWith { MediaItem.fromUri(mediaUris[it]) }
+    val viewModel: VideoEditorViewModel = viewModel(
+        factory = VideoEditorViewModelFactory(
+            project?.editingSettings ?: EditSettings(emptyList()) // Pass EditSettings from project
+        )
+    )
     val editSettings by viewModel.uiState.collectAsState()
     val showProgressDialog by viewModel.showProgressDialog.collectAsState()
-    val downloadButtonEnabled by viewModel.downloadButtonEnabled.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
 
     val playbackState = exoPlayer.playbackState
@@ -108,21 +108,14 @@ fun VideoEditorScreen(
     var showResolutionDialog by remember { mutableStateOf(false) }
     var selectedResolution by remember { mutableStateOf("1080p") }
 
-    // Observe total duration from ViewModel
     val totalDuration by viewModel.totalDuration.collectAsState()
-
-    // Observe intervals from ViewModel
     val intervals by viewModel.intervals.collectAsState()
-
-    val mediaSources by viewModel.mediaSources.collectAsState()
     val timeline by viewModel.timeline.collectAsState()
 
-    // State for slider position (0f to 1f)
     var sliderPosition by remember { mutableStateOf(0f) }
 
-
     if (project != null) {
-        Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames.entries}")
+        Log.d("VideoEditScreen", "MediaItemMap: ${project.mediaNames}")
         Log.d("VideoEditScreen", "MediaItems: ${project.media}")
         Log.d("VideoEditScreen", "PromptId: ${project.promptId}")
         Log.d("VideoEditScreen", "Prompt: ${project.prompt}")
@@ -132,73 +125,27 @@ fun VideoEditorScreen(
         viewModel.initializeCache(context)
     }
 
-    // Create media sources when project is available
-    LaunchedEffect(project) {
+
+    // Combined LaunchedEffect for media sources and preview
+    LaunchedEffect(project, editSettings) {
+        Log.d("VideoEditorScreen", "Edit settings: $editSettings")
+        Log.d("VideoEditorScreen", "Project media names: ${project?.mediaNames}")
         if (project != null) {
-            viewModel.createMediaSources(context, project.media.map { Uri.fromFile(File(it)) })
+            viewModel.previewEditSettings(
+                context,
+                exoPlayer,
+                editSettings,
+                project.mediaNames,
+                onPlayerReady = { playerReady = true
+                    Log.d("VideoEditorScreen", "playerReady set to true")
+                }
+            )
         }
     }
 
-
-
-
-    // Prepare ExoPlayer for playback (Modified)
-    LaunchedEffect(mediaSources) { // Triggered when mediaSources changes
-        if (mediaSources.isNotEmpty()) {
-            val concatenatingMediaSource = ConcatenatingMediaSource()
-            mediaSources.forEach { concatenatingMediaSource.addMediaSource(it) }
-            Log.d("VideoEditorScreen", "MediaSources: $mediaSources")
-            Log.d("VideoEditorScreen", "Preparing the mediasources")
-
-            // Wait for ExoPlayer to prepare
-            val listener = object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    Log.d("VideoEditorScreen", "Playback State Changed: $playbackState")
-                    if (playbackState == Player.STATE_READY) {
-                        playerReady = true
-                        Log.d("VideoEditorScreen", "Player is ready oh")
-
-                        // Log the total duration
-                        val totalDurationInSeconds = exoPlayer.duration / 1000
-                        Log.d("VideoEditorScreen", "Total Duration (Seconds): $totalDurationInSeconds")
-
-                        // Log individual clip durations
-                        val timeline = exoPlayer.currentTimeline
-                        if (timeline.windowCount > 0) {
-                            for (i in 0 until timeline.windowCount) {
-                                val window = Timeline.Window()
-                                timeline.getWindow(i, window)
-                                val durationInSeconds = window.durationUs / 1000000
-                                Log.d("VideoEditorScreen", "MediaSource $i Duration (Seconds): $durationInSeconds")
-                            }
-                        }
-                    }
-                }
-
-                override fun onPlayerError(error: PlaybackException) {
-                    super.onPlayerError(error)
-                    Log.e("VideoEditorScreen", "ExoPlayer Error: ${error.message}")
-                }
-            }
-            exoPlayer.addListener(listener)
-
-            exoPlayer.setMediaSource(concatenatingMediaSource)
-            exoPlayer.prepare()
-
-            // Start playback only if isPlaying is true
-            if (isPlaying) {
-                exoPlayer.play()
-            }
-
-            // Update the timeline in the ViewModel
-            viewModel.updateTimeline(exoPlayer)
-        }
-    }
-
-    // Observe player state and data (Simplified)
+    // Observe player state and data
     LaunchedEffect(playerReady) {
         if (playerReady) {
-            Log.d("VideoEditorScreen", "Player is ready")
             snapshotFlow {
                 Triple(exoPlayer.playbackState, exoPlayer.currentPosition, exoPlayer.currentTimeline)
             }.collect { (playbackState, position, timeline) ->
@@ -206,21 +153,7 @@ fun VideoEditorScreen(
                     currentPosition = position
                     duration = exoPlayer.duration
                     viewModel.updateTotalDuration(exoPlayer.duration)
-                    Log.d("VideoEditorScreen", "Total Duration: ${exoPlayer.duration}")
-
-                    // Log timeline details
-                    if (timeline.windowCount > 0) {
-                        val lastWindow = Timeline.Window()
-                        timeline.getWindow(timeline.windowCount - 1, lastWindow)
-                        val totalDurationUs = lastWindow.windowStartTimeMs + lastWindow.durationUs
-                        val totalDurationInSeconds = (totalDurationUs / 1000000).toInt()
-                        Log.d(
-                            "VideoEditorScreen",
-                            "Total Duration (Seconds from Timeline): $totalDurationInSeconds"
-                        )
-                    }
                 }
-                Log.d("VideoEditorScreen", "Playback State: $playbackState")
             }
         }
     }
@@ -396,11 +329,6 @@ fun VideoEditorScreen(
                     }
                 }
 
-                LaunchedEffect(Unit) {
-                    if (mediaUris != null) {
-                        viewModel.createMediaSources(context, mediaUris)
-                    }
-                }
             }
         }
     } else {
