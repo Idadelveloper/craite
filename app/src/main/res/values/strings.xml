@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Craite</string>
+    <string name="recents">Recents</string>
+    <string name="project_name">Project Name</string>
+    <string name="project_name_hint">Give your project a suitable name</string>
+    <string name="footages">Footages</string>
+    <string name="no_selected">No Selected Media</string>
+    <string name="import_footage">Import Footages</string>
+    <string name="prompt">Prompt</string>
+    <string name="prompt_hint">Whats happening in your videos and what do you expect in the final video?</string>
+    <string name="create_project">Create Project</string>
 </resources>
