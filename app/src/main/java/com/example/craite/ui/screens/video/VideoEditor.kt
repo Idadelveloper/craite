@@ -253,8 +253,9 @@ class VideoEditor {
         exoPlayer: ExoPlayer,
         editSettings: EditSettings,
         mediaNameMap: Map<String, String>,
-        loopPlayback: Boolean = false, // Optional parameter for looping
-        autoPlay: Boolean = true // Optional parameter for autoplay
+        loopPlayback: Boolean = false,
+        autoPlay: Boolean = true,
+        onPlayerReady: () -> Unit
     ) {
         exoPlayer.clearMediaItems()
 
@@ -326,6 +327,10 @@ class VideoEditor {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 Log.d("VideoEditor", "Playback State Changed: $playbackState")
+                if (playbackState == Player.STATE_READY) {
+                    onPlayerReady()
+                    Log.d("VideoEditor", "onPlayerReady callback invoked")
+                }
                 // ... (Your existing code to handle state changes) ...
             }
 

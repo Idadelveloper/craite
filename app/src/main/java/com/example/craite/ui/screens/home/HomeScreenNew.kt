@@ -122,7 +122,7 @@ fun HomeScreenNew(
                         LazyVerticalStaggeredGrid(
                             modifier = Modifier.height(localConfiguration.screenHeightDp.dp),
 
-                            userScrollEnabled = false,
+                            userScrollEnabled = true,
                             columns = StaggeredGridCells.Fixed(2),
                             contentPadding = PaddingValues(16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),

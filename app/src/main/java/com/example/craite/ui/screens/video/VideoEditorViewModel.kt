@@ -89,6 +89,8 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _timeline = MutableStateFlow<Timeline?>(null)
     val timeline: StateFlow<Timeline?> = _timeline.asStateFlow()
 
+    private val videoEditor = VideoEditor()
+
     private lateinit var cache: Cache
 
     fun initializeCache(context: Context) {
@@ -271,7 +273,13 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
             val videoEditsJson = json?.get("video_edits") as? List<Map<String, Any>>
             val videoEdits = videoEditsJson?.map { videoEditJson ->
                 VideoEdit(
-                    video_name = (videoEditJson["video_name"] as? String)?.split("/")?.lastOrNull() ?: "",
+                    video_name = (videoEditJson["video_name"] as? String)?.let { name ->
+                        if (name.contains('/')) {
+                            name.split('/').lastOrNull() ?: ""
+                        } else {
+                            name
+                        }
+                    } ?: "",
                     start_time = videoEditJson["start_time"] as? Double ?: 0.0,
                     effects = (videoEditJson["effects"] as? List<Map<String, Any>>)?.map { effectJson ->
                         MediaEffect(
@@ -421,6 +429,24 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
             )
         }
 
+    }
+
+    fun previewEditSettings(
+        context: Context,
+        exoPlayer: ExoPlayer,
+        editSettings: EditSettings,
+        mediaNameMap: Map<String, String>,
+        onPlayerReady: () -> Unit // Add the callback parameter
+    ) {
+        viewModelScope.launch {
+            videoEditor.previewEditSettings(
+                context,
+                exoPlayer,
+                editSettings,
+                mediaNameMap,
+                onPlayerReady = onPlayerReady
+            )
+        }
     }
 
     // Show Snackbar (Placeholder for Snackbar implementation)

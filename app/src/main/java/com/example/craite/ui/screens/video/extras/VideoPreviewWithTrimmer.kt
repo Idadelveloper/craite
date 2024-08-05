@@ -1,6 +1,7 @@
 package com.example.craite.ui.screens.video.extras
 
 import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ConcatenatingMediaSource
@@ -28,6 +30,7 @@ import java.io.File
 
 import kotlin.io.path.exists
 
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoPreviewWithTrimmer(
     videoUri: Uri, // This is now unused, kept for compatibility
