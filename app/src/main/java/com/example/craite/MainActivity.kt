@@ -88,18 +88,14 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        composable("home_screen") {
-            HomeScreen(navController = navController, db = db, modifier = Modifier, user = user)
-        }
+
         composable("home") {
             HomeScreenNew(navController = navController, db = db, user = user)
         }
         composable("project") {
             NewProjectScreen(navController = navController, projectDatabase = db, context = context, user = user)
         }
-        composable("new_project_screen") {
-            NewProject(navController = navController, projectDatabase = db, context = context, user = user)
-        }
+
         composable(
             route = "video_editor_screen/{projectId}",
             arguments = listOf(navArgument("projectId") { type = NavType.IntType })

@@ -60,11 +60,9 @@ import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.upstream.Loader.Loadable
 import androidx.navigation.NavController
-import com.example.craite.VideoEditor
 import com.example.craite.data.EditSettings
 import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
-import com.example.craite.generateFakeEditSettings
 import com.example.craite.ui.screens.video.composables.CraiteTimeline
 import com.example.craite.ui.screens.video.composables.PlaybackControls
 import com.example.craite.ui.screens.video.composables.CraiteTimeline

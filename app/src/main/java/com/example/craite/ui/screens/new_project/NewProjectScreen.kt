@@ -2,8 +2,11 @@ package com.example.craite.ui.screens.new_project
 
 
 import android.Manifest
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
@@ -61,6 +64,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -114,9 +118,15 @@ fun NewProjectScreen(
             }
         }
 
-    val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        selectedAudio = uri
+    val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                selectedAudio = uri
+            }
+        }
     }
+
+    val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
 
     val localConfiguration: Configuration = LocalConfiguration.current
 
@@ -143,9 +153,12 @@ fun NewProjectScreen(
 
     val requestAudioPermissionLauncher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
         if (isGranted) {
-            pickAudio.launch("audio/*")
+            // Permission granted, launch the audio picker
+            val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+            pickAudio.launch(intent)
         } else {
-            Log.d("Permission", "READ_AUDIO permission denied")
+            // Permission denied, handle accordingly (e.g., show a message)
+            Log.d("Permission", "READ_EXTERNAL_STORAGE permission denied")
         }
     }
 
@@ -245,7 +258,14 @@ fun NewProjectScreen(
 
                     Button(
                         onClick = {
-                            requestAudioPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                                // Permission already granted, launch audio picker
+                                val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+                                pickAudio.launch(intent)
+                            } else {
+                                // Request permission
+                                requestAudioPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
