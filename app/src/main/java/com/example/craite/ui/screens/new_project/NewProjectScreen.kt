@@ -126,7 +126,6 @@ fun NewProjectScreen(
         }
     }
 
-    val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
 
     val localConfiguration: Configuration = LocalConfiguration.current
 

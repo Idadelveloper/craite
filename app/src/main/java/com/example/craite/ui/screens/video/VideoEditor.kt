@@ -144,7 +144,7 @@ class VideoEditor {
                 )
 
                 // Apply text overlays
-                val textureOverlays = textOverlays.map { textOverlay ->
+                val bitmapOverlays = textOverlays.map { textOverlay ->
                     videoEffects.addStaticTextOverlay(
                         text = textOverlay.text,
                         fontSize = 50,
@@ -154,12 +154,12 @@ class VideoEditor {
                 }
 
                 // Add OverlayEffect to the effects list
-                if (textureOverlays.isNotEmpty()) {
-                    for (overlay in textureOverlays) {
+                if (bitmapOverlays.isNotEmpty()) {
+                    for (overlay in bitmapOverlays) {
                         effects += OverlayEffect(ImmutableList.of(overlay))
                     }
                 }
-                Log.d("VideoEditor", "Text Overlays: $textureOverlays")
+                Log.d("VideoEditor", "Text Overlays: $bitmapOverlays")
 
                 editedMediaItem = EditedMediaItem.Builder(mediaItemBuilder.build())
                     .setEffects(
