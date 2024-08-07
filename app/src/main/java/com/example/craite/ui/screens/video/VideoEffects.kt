@@ -25,7 +25,14 @@ import androidx.media3.effect.RgbAdjustment
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.effect.TextOverlay
 import com.google.errorprone.annotations.CanIgnoreReturnValue
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.text.toDouble
+import kotlin.text.toFloat
 
 class  VideoEffects {
     @OptIn(UnstableApi::class)
@@ -83,8 +90,8 @@ class  VideoEffects {
     // Helper function to calculate the vignette scale (modified)
     private fun vignetteScale(outerRadius: Float, innerRadius: Float): Float {
         // Calculate the average scale for the entire frame (simplified for demonstration)
-        val distanceFromCenter = Math.sqrt(
-            Math.pow((0.5f - 0.5f).toDouble(), 2.0) + Math.pow((0.5f - 0.5f).toDouble(), 2.0)
+        val distanceFromCenter = sqrt(
+            (0.5f - 0.5f).toDouble().pow(2.0) + (0.5f - 0.5f).toDouble().pow(2.0)
         ).toFloat()
         return if (distanceFromCenter > outerRadius) {
             0f // Completely dark outside outer radius
@@ -96,12 +103,45 @@ class  VideoEffects {
     }
 
     @OptIn(UnstableApi::class)
-    fun sepia(): RgbAdjustment {
-        return RgbAdjustment.Builder()
-            .setRedScale(0.393f)
-            .setGreenScale(0.769f)
-            .setBlueScale(0.189f)
-            .build()
+    fun fisheye(strength: Float = 0.5f): MatrixTransformation {
+        return MatrixTransformation {
+            val transformationMatrix = Matrix()
+            val centerX = 0.5f
+            val centerY = 0.5f
+            val radius = centerX.coerceAtMost(centerY)
+            val normalizedStrength = strength.coerceIn(0f, 1f)
+
+            // Directly apply fisheye distortion to input coordinates (x, y)
+            transformationMatrix.postTranslate(
+                fisheyeOffset(0f, 0f, centerX, centerY, radius, normalizedStrength),
+                fisheyeOffset(0f, 1f, centerX, centerY, radius, normalizedStrength)
+            )
+
+            transformationMatrix
+        }
+    }
+
+    // Helper function to calculate fisheye offset
+    private fun fisheyeOffset(
+        x: Float,
+        y: Float,
+        centerX: Float,
+        centerY: Float,
+        radius: Float,
+        strength: Float
+    ): Float {
+        val distanceFromCenter = sqrt(
+            (x - centerX).toDouble().pow(2.0) + (y - centerY).toDouble().pow(2.0)
+        ).toFloat()
+
+        return if (distanceFromCenter <= radius) {
+            val theta = atan2((y - centerY).toDouble(), (x - centerX).toDouble())
+            val newRadius = radius * sin(Math.PI / 2 * (distanceFromCenter / radius)) / (Math.PI / 2)
+            val offset = (newRadius.toFloat() - distanceFromCenter) * strength
+            if (x == centerX) offset else offset * cos(theta).toFloat() // Adjust for x or y offset
+        } else {
+            0f // No effect outside the radius
+        }
     }
 
     @OptIn(UnstableApi::class)
