@@ -259,11 +259,13 @@ fun NewProjectScreen(
                     Button(
                         onClick = {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                                Log.d("Permission", "READ_EXTERNAL_STORAGE permission granted")
                                 // Permission already granted, launch audio picker
                                 val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
                                 pickAudio.launch(intent)
                             } else {
                                 // Request permission
+                                Log.d("Permission", "Requesting READ_EXTERNAL_STORAGE permission")
                                 requestAudioPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
                             }
                         },

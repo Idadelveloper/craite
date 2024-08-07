@@ -145,6 +145,29 @@ class  VideoEffects {
     }
 
     @OptIn(UnstableApi::class)
+    fun colorTint(hexColor: String): RgbAdjustment {
+        val color = hexToColor(hexColor)
+        val redScale = color.red / 255f
+        val greenScale = color.green / 255f
+        val blueScale = color.blue / 255f
+        return RgbAdjustment.Builder()
+            .setRedScale(redScale)
+            .setGreenScale(greenScale)
+            .setBlueScale(blueScale)
+            .build()
+    }
+
+    // Helper function to convert hex color code to Color object
+    private fun hexToColor(hexColor: String): Color {
+        val colorInt = try {
+            android.graphics.Color.parseColor(hexColor)
+        } catch (e: IllegalArgumentException) {
+            Color.Black.toArgb() // Default to black if invalid hex code
+        }
+        return Color(colorInt)
+    }
+
+    @OptIn(UnstableApi::class)
     fun rotate(degrees: Int = 90): ScaleAndRotateTransformation {
         return ScaleAndRotateTransformation.Builder()
             .setRotationDegrees(degrees.toFloat())
