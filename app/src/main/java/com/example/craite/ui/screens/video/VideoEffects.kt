@@ -63,10 +63,11 @@ class  VideoEffects {
 
     @OptIn(UnstableApi::class)
     fun saturation(saturation: Float): RgbAdjustment {
+        val scale = saturation + 1f
         return RgbAdjustment.Builder()
-            .setRedScale(1f)
-            .setGreenScale(1f)
-            .setBlueScale(1f)
+            .setRedScale(scale)
+            .setGreenScale(scale)
+            .setBlueScale(scale)
             .build()
     }
 

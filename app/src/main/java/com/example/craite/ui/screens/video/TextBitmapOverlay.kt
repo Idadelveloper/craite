@@ -26,7 +26,7 @@ class TextBitmapOverlay(
             textSize = fontSize.toFloat()
             color = textColor
         }
-        val screenWidth = 1000 // Assume a base width for calculation (adjust as needed)
+        val screenWidth = 1000 // Assume a base width for calculation
         val staticLayout = StaticLayout.Builder.obtain(
             text,
             0,

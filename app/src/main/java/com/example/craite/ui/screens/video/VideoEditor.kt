@@ -107,7 +107,7 @@ class VideoEditor {
         outputPath: String,
         startTimeSeconds: Double,
         endTimeSeconds: Double,
-        effects: MutableList<Effect>, // Effects list is now mutable
+        effects: MutableList<Effect>,
         textOverlays: List<CraiteTextOverlay>
     ): EditedMediaItem? {
         return suspendCancellableCoroutine { continuation ->
