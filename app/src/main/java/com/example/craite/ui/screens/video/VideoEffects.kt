@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.setText
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.MatrixTransformation
@@ -62,10 +63,11 @@ class  VideoEffects {
 
     @OptIn(UnstableApi::class)
     fun saturation(saturation: Float): RgbAdjustment {
+        val scale = saturation + 1f
         return RgbAdjustment.Builder()
-            .setRedScale(1f)
-            .setGreenScale(1f)
-            .setBlueScale(1f)
+            .setRedScale(scale)
+            .setGreenScale(scale)
+            .setBlueScale(scale)
             .build()
     }
 
@@ -104,43 +106,14 @@ class  VideoEffects {
         backgroundFrameAnchorX: Float = 0.0f, // X anchor point within the background frame (0 to 1)
         backgroundFrameAnchorY: Float = 0.0f, // Y anchor point within the background frame (0 to 1)
         hdrLuminanceMultiplier: Float = 1.0f // Luminance multiplier for HDR frames
-    ): TextOverlay {
-        val spannableText = SpannableString(text)
-
-        val overlaySettings = OverlaySettings.Builder()
-            .setAlphaScale(alphaScale)
-            .setBackgroundFrameAnchor(backgroundFrameAnchorX, backgroundFrameAnchorY)
-            .setOverlayFrameAnchor(overlayFrameAnchorX, overlayFrameAnchorY)
-            .setRotationDegrees(rotationDegrees)
-            .setScale(scaleX, scaleY)
-            .build()
-
-        // Set font size and colors using SpannableString
-        spannableText.setSpan(
-            AbsoluteSizeSpan(fontSize),
-            0,
-            text.length,
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+    ): BitmapOverlay {
+        return TextBitmapOverlay(
+            text = text,
+            fontSize = fontSize,
+            textColor = textColor,
+            backgroundColor = backgroundColor,
         )
-        spannableText.setSpan(
-            ForegroundColorSpan(textColor),
-            0,
-            text.length,
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        if (backgroundColor != Color.Transparent.toArgb()) {
-            spannableText.setSpan(
-                BackgroundColorSpan(backgroundColor),
-                0,
-                text.length,
-                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        }
-        Log.d("Video Effects", "Text Overlaid")
-
-        return TextOverlay.createStaticTextOverlay(spannableText, overlaySettings)
     }
-
 }
 
 class TypefaceSpan(private val typeface: Typeface) : MetricAffectingSpan() {
