@@ -72,6 +72,30 @@ class  VideoEffects {
     }
 
     @OptIn(UnstableApi::class)
+    fun vignette(outerRadius: Float = 0.8f, innerRadius: Float = 0.3f): RgbAdjustment {
+        return RgbAdjustment.Builder()
+            .setRedScale(vignetteScale(outerRadius, innerRadius))
+            .setGreenScale(vignetteScale(outerRadius, innerRadius))
+            .setBlueScale(vignetteScale(outerRadius, innerRadius))
+            .build()
+    }
+
+    // Helper function to calculate the vignette scale (modified)
+    private fun vignetteScale(outerRadius: Float, innerRadius: Float): Float {
+        // Calculate the average scale for the entire frame (simplified for demonstration)
+        val distanceFromCenter = Math.sqrt(
+            Math.pow((0.5f - 0.5f).toDouble(), 2.0) + Math.pow((0.5f - 0.5f).toDouble(), 2.0)
+        ).toFloat()
+        return if (distanceFromCenter > outerRadius) {
+            0f // Completely dark outside outer radius
+        } else if (distanceFromCenter < innerRadius) {
+            1f // No effect inside inner radius
+        } else {
+            1f - (distanceFromCenter - innerRadius) / (outerRadius - innerRadius) // Gradual darkening
+        }
+    }
+
+    @OptIn(UnstableApi::class)
     fun sepia(): RgbAdjustment {
         return RgbAdjustment.Builder()
             .setRedScale(0.393f)

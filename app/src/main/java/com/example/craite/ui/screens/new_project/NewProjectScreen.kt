@@ -119,6 +119,7 @@ fun NewProjectScreen(
         }
 
     val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d("AudioPicker", "Result: $result")
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
                 selectedAudio = uri
