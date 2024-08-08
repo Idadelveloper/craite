@@ -247,7 +247,6 @@ class VideoEditor {
                 "rotate" -> effects.add(videoEffects.rotate(effect.adjustment[0].toInt()))
                 "zoomIn" -> effects.add(videoEffects.zoomIn(effect.adjustment[0]))
                 "zoomOut" -> effects.add(videoEffects.zoomOut(effect.adjustment[0]))
-                // Add more mappings for other effect types as needed
             }
         }
         return effects

@@ -328,6 +328,7 @@ fun NewProjectScreen(
                                 projectDatabase.projectDao(),
                                 projectName,
                                 selectedMedia,
+                                selectedAudio,
                                 context,
                                 user,
                                 prompt

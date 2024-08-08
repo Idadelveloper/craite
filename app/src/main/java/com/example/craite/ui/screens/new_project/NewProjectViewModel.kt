@@ -96,7 +96,8 @@ class NewProjectViewModel : ViewModel() {
     fun createProject(
         projectDao: ProjectDao,
         projectName: String,
-        uris: List<Uri>,
+        videoUris: List<Uri>,
+        audioUri: Uri?,
         context: Context,
         user: FirebaseUser,
         prompt: String
@@ -104,7 +105,7 @@ class NewProjectViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 // Copy videos to internal storage and get file paths
-                val filePaths = uris.mapNotNull { copyVideoToInternalStorage(context, it) }
+                val filePaths = videoUris.mapNotNull { copyVideoToInternalStorage(context, it) }
 
                 // Create project with file paths
                 val project = Project(name = projectName, media = filePaths)
@@ -211,10 +212,46 @@ class NewProjectViewModel : ViewModel() {
                         // All uploads successful
                         Toast.makeText(context, "Videos uploaded successfully", Toast.LENGTH_SHORT).show()
 
+                        viewModelScope.launch {
+                            // Handle audio saving and upload (if selected)
+                            var audioFilePath: String? = null
+                            if (audioUri != null) {
+                                // Save audio to MediaStore and get its file path
+                                audioFilePath = saveAudioToMediaStore(context, audioUri)
+
+                                // Update the project in the Room database with the audio file path
+                                if (audioFilePath != null) {
+                                    projectDao.updateAudioPath(projectId, audioFilePath)
+                                    Log.d("NewProjectViewModel", "Audio path updated in Room database")
+                                } else {
+                                    Log.e("NewProjectViewModel", "Failed to save audio to MediaStore")
+                                    // Handle the error appropriately (e.g., display a message)
+                                }
+
+                                // Upload audio to cloud storage (if saving to MediaStore was successful)
+                                if (audioFilePath != null) {
+                                    val audioFileName = "audio_${System.currentTimeMillis()}.mp3" // Or get the actual file name if possible
+                                    // Updated Firebase Storage path for audio
+                                    val audioFileRef = storageRef.child("users/${user.uid}/projects/$projectId/audios/$audioFileName")
+
+                                    audioFileRef.putFile(Uri.fromFile(File(audioFilePath)))
+                                        .addOnSuccessListener {
+                                            Log.d("FirebaseStorage", "Audio file uploaded: ${audioFileRef.path}")
+                                            Toast.makeText(context, "Audio file uploaded: ${audioFileRef.path}", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .addOnFailureListener { exception ->
+                                            Log.e("FirebaseStorage", "Audio upload failed: ${exception.message}")
+                                            Toast.makeText(context, "Audio upload failed: ${exception.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                }
+                            }
+                        }
+
                         // Send prompt and video directory to Firestore
                         val promptData = hashMapOf(
                             "prompt" to prompt,
                             "videoDirectory" to "users/${user.uid}/projects/$projectId/videos",
+                            "audioDirectory" to "users/${user.uid}/projects/$projectId/audios",
                             "userId" to user.uid,
                             "projectId" to projectId
                         )
@@ -257,6 +294,66 @@ class NewProjectViewModel : ViewModel() {
             } catch (e: Exception) {
                 Toast.makeText(context, "Error creating project", Toast.LENGTH_SHORT).show()
                 // Handle the error appropriately
+            }
+        }
+    }
+
+    // Helper function to save audio to MediaStore and return its file path
+    private fun saveAudioToMediaStore(context: Context, audioUri: Uri): String? {
+        val fileName = getFileName(context, audioUri) ?: return null
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Audio.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg") // Adjust MIME type if needed
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC)
+                put(MediaStore.Audio.Media.IS_PENDING, 1)
+            }
+        }
+
+        val resolver = context.contentResolver
+        var audioFileUri: Uri? = null
+        var outputStream: OutputStream? = null
+
+        try {
+            audioFileUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+            outputStream = audioFileUri?.let { resolver.openOutputStream(it) }
+            val inputStream = resolver.openInputStream(audioUri)
+            inputStream?.use { input ->
+                outputStream?.use { output ->
+                    val buffer = ByteArray(4 * 1024)
+                    var read: Int
+                    while (input.read(buffer).also { read = it } != -1) {
+                        output.write(buffer, 0, read)
+                    }
+                    output.flush()
+                }
+            }
+
+            // Return the file path of the saved audio
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // For Android Q and above, copy the file to a temporary file and return its path
+                val tempFile = File.createTempFile("temp_audio", ".mp3", context.cacheDir)
+                val tempOutputStream = FileOutputStream(tempFile)
+                if (audioFileUri != null) {
+                    resolver.openInputStream(audioFileUri)?.use { inputStream ->
+                        inputStream.copyTo(tempOutputStream)
+                    }
+                }
+                tempFile.absolutePath
+            } else {
+                // For older Android versions, get the file path directly from the content URI
+                val audioFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), fileName)
+                audioFile.absolutePath
+            }
+        } catch (e: Exception) {
+            Log.e("NewProjectViewModel", "Failed to save audio to MediaStore: ${e.message}")
+            return null
+        } finally {
+            outputStream?.close()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.Audio.Media.IS_PENDING, 0)
+                audioFileUri?.let { resolver.update(it, contentValues, null, null) }
             }
         }
     }
