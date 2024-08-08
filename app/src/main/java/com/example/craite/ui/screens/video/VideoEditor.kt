@@ -241,6 +241,12 @@ class VideoEditor {
                 "brightness" -> effects.add(videoEffects.brightness(effect.adjustment[0]))
                 "contrast" -> effects.add(videoEffects.contrast(effect.adjustment[0]))
                 "saturation" -> effects.add(videoEffects.saturation(effect.adjustment[0]))
+                "vignette" -> effects.add(videoEffects.vignette(effect.adjustment[0], effect.adjustment[1]))
+                "fisheye" -> effects.add(videoEffects.fisheye(effect.adjustment[0]))
+                "colorTint" -> effects.add(videoEffects.colorTint(effect.adjustment[0].toString()))
+                "rotate" -> effects.add(videoEffects.rotate(effect.adjustment[0].toInt()))
+                "zoomIn" -> effects.add(videoEffects.zoomIn(effect.adjustment[0]))
+                "zoomOut" -> effects.add(videoEffects.zoomOut(effect.adjustment[0]))
                 // Add more mappings for other effect types as needed
             }
         }

@@ -36,22 +36,22 @@ import kotlin.text.toFloat
 
 class  VideoEffects {
     @OptIn(UnstableApi::class)
-    fun zoomIn(durationUs: Long = 1_000_000L): MatrixTransformation {
+    fun zoomIn(zoomFactor: Float = 2f, durationUs: Long = 1_000_000L): MatrixTransformation {
         return MatrixTransformation { presentationTimeUs ->
             val transformationMatrix = Matrix()
             val progress = min(1f, presentationTimeUs.toFloat() / durationUs)
-            val scale = 1f + progress * (2f - 1f) // Zoom in from 1x to 2x
+            val scale = 1f + progress * (zoomFactor - 1f)
             transformationMatrix.postScale(/* x */ scale, /* y */ scale)
             transformationMatrix
         }
     }
 
     @OptIn(UnstableApi::class)
-    fun zoomOut(durationUs: Long = 1_000_000L): MatrixTransformation {
+    fun zoomOut(zoomFactor: Float = 0.5f, durationUs: Long = 1_000_000L): MatrixTransformation {
         return MatrixTransformation { presentationTimeUs ->
             val transformationMatrix = Matrix()
             val progress = min(1f, presentationTimeUs.toFloat() / durationUs)
-            val scale = 1f - progress * (1f - 0.5f) // Zoom out from 1x to 0.5x
+            val scale = 1f - progress * (1f - zoomFactor)
             transformationMatrix.postScale(/* x */ scale, /* y */ scale)
             transformationMatrix
         }
