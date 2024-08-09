@@ -89,7 +89,7 @@ fun VideoEditorScreen(
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     val viewModel: VideoEditorViewModel = viewModel(
         factory = VideoEditorViewModelFactory(
-            project?.editingSettings ?: EditSettings(emptyList()) // Pass EditSettings from project
+            project?.editingSettings ?: EditSettings(emptyList(), null) // Pass EditSettings from project
         )
     )
     val editSettings by viewModel.uiState.collectAsState()
