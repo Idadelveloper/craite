@@ -119,6 +119,7 @@ fun NewProjectScreen(
         }
 
     val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d("AudioPicker", "Result: $result")
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
                 selectedAudio = uri
@@ -257,7 +258,8 @@ fun NewProjectScreen(
 
                     Button(
                         onClick = {
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                Log.d("Permission", "READ_EXTERNAL_STORAGE permission granted")
                                 // Permission already granted, launch audio picker
                                 val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
                                 pickAudio.launch(intent)
@@ -326,6 +328,7 @@ fun NewProjectScreen(
                                 projectDatabase.projectDao(),
                                 projectName,
                                 selectedMedia,
+                                selectedAudio,
                                 context,
                                 user,
                                 prompt

@@ -301,7 +301,7 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                 )
             } ?: emptyList()
 
-            EditSettings(video_edits = videoEdits)
+            EditSettings(video_edits = videoEdits, audio_edits = null)
         } catch (e: Exception) {
             Log.e("VideoEditViewModel", "Error parsing JSON: ${e.message}")
             null

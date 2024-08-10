@@ -25,26 +25,33 @@ import androidx.media3.effect.RgbAdjustment
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.effect.TextOverlay
 import com.google.errorprone.annotations.CanIgnoreReturnValue
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.text.toDouble
+import kotlin.text.toFloat
 
 class  VideoEffects {
     @OptIn(UnstableApi::class)
-    fun zoomIn(durationUs: Long = 1_000_000L): MatrixTransformation {
+    fun zoomIn(zoomFactor: Float = 2f, durationUs: Long = 1_000_000L): MatrixTransformation {
         return MatrixTransformation { presentationTimeUs ->
             val transformationMatrix = Matrix()
             val progress = min(1f, presentationTimeUs.toFloat() / durationUs)
-            val scale = 1f + progress * (2f - 1f) // Zoom in from 1x to 2x
+            val scale = 1f + progress * (zoomFactor - 1f)
             transformationMatrix.postScale(/* x */ scale, /* y */ scale)
             transformationMatrix
         }
     }
 
     @OptIn(UnstableApi::class)
-    fun zoomOut(durationUs: Long = 1_000_000L): MatrixTransformation {
+    fun zoomOut(zoomFactor: Float = 0.5f, durationUs: Long = 1_000_000L): MatrixTransformation {
         return MatrixTransformation { presentationTimeUs ->
             val transformationMatrix = Matrix()
             val progress = min(1f, presentationTimeUs.toFloat() / durationUs)
-            val scale = 1f - progress * (1f - 0.5f) // Zoom out from 1x to 0.5x
+            val scale = 1f - progress * (1f - zoomFactor)
             transformationMatrix.postScale(/* x */ scale, /* y */ scale)
             transformationMatrix
         }
@@ -72,12 +79,92 @@ class  VideoEffects {
     }
 
     @OptIn(UnstableApi::class)
-    fun sepia(): RgbAdjustment {
+    fun vignette(outerRadius: Float = 0.8f, innerRadius: Float = 0.3f): RgbAdjustment {
         return RgbAdjustment.Builder()
-            .setRedScale(0.393f)
-            .setGreenScale(0.769f)
-            .setBlueScale(0.189f)
+            .setRedScale(vignetteScale(outerRadius, innerRadius))
+            .setGreenScale(vignetteScale(outerRadius, innerRadius))
+            .setBlueScale(vignetteScale(outerRadius, innerRadius))
             .build()
+    }
+
+    // Helper function to calculate the vignette scale (modified)
+    private fun vignetteScale(outerRadius: Float, innerRadius: Float): Float {
+        // Calculate the average scale for the entire frame (simplified for demonstration)
+        val distanceFromCenter = sqrt(
+            (0.5f - 0.5f).toDouble().pow(2.0) + (0.5f - 0.5f).toDouble().pow(2.0)
+        ).toFloat()
+        return if (distanceFromCenter > outerRadius) {
+            0f // Completely dark outside outer radius
+        } else if (distanceFromCenter < innerRadius) {
+            1f // No effect inside inner radius
+        } else {
+            1f - (distanceFromCenter - innerRadius) / (outerRadius - innerRadius) // Gradual darkening
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun fisheye(strength: Float = 0.5f): MatrixTransformation {
+        return MatrixTransformation {
+            val transformationMatrix = Matrix()
+            val centerX = 0.5f
+            val centerY = 0.5f
+            val radius = centerX.coerceAtMost(centerY)
+            val normalizedStrength = strength.coerceIn(0f, 1f)
+
+            // Directly apply fisheye distortion to input coordinates (x, y)
+            transformationMatrix.postTranslate(
+                fisheyeOffset(0f, 0f, centerX, centerY, radius, normalizedStrength),
+                fisheyeOffset(0f, 1f, centerX, centerY, radius, normalizedStrength)
+            )
+
+            transformationMatrix
+        }
+    }
+
+    // Helper function to calculate fisheye offset
+    private fun fisheyeOffset(
+        x: Float,
+        y: Float,
+        centerX: Float,
+        centerY: Float,
+        radius: Float,
+        strength: Float
+    ): Float {
+        val distanceFromCenter = sqrt(
+            (x - centerX).toDouble().pow(2.0) + (y - centerY).toDouble().pow(2.0)
+        ).toFloat()
+
+        return if (distanceFromCenter <= radius) {
+            val theta = atan2((y - centerY).toDouble(), (x - centerX).toDouble())
+            val newRadius = radius * sin(Math.PI / 2 * (distanceFromCenter / radius)) / (Math.PI / 2)
+            val offset = (newRadius.toFloat() - distanceFromCenter) * strength
+            if (x == centerX) offset else offset * cos(theta).toFloat() // Adjust for x or y offset
+        } else {
+            0f // No effect outside the radius
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun colorTint(hexColor: String): RgbAdjustment {
+        val color = hexToColor(hexColor)
+        val redScale = color.red / 255f
+        val greenScale = color.green / 255f
+        val blueScale = color.blue / 255f
+        return RgbAdjustment.Builder()
+            .setRedScale(redScale)
+            .setGreenScale(greenScale)
+            .setBlueScale(blueScale)
+            .build()
+    }
+
+    // Helper function to convert hex color code to Color object
+    private fun hexToColor(hexColor: String): Color {
+        val colorInt = try {
+            android.graphics.Color.parseColor(hexColor)
+        } catch (e: IllegalArgumentException) {
+            Color.Black.toArgb() // Default to black if invalid hex code
+        }
+        return Color(colorInt)
     }
 
     @OptIn(UnstableApi::class)
