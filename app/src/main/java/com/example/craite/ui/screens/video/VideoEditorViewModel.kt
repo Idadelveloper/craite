@@ -30,6 +30,7 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.transformer.Composition
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
+import com.example.craite.data.AudioEdit
 import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.EditSettings
 import com.example.craite.data.EditSettingsRepository
@@ -301,7 +302,20 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                 )
             } ?: emptyList()
 
-            EditSettings(video_edits = videoEdits, audio_edits = null)
+            // Parse audio edits
+            val audioEditsJson = json?.get("audio_edits") as? Map<String, Any>
+            val audioEdits = audioEditsJson?.let {
+                (it["end_time"] as? Double)?.let { it1 ->
+                    AudioEdit(
+                        start_time = (it["start_time"] as? Double)!!,
+                        end_time = it1
+                    )
+                }
+            }
+            Log.d("VideoEditViewModel", "Audio Edits: $audioEdits")
+            Log.d("VideoEditViewModel", "Video Edits: $videoEdits")
+
+            EditSettings(video_edits = videoEdits, audio_edits = audioEdits)
         } catch (e: Exception) {
             Log.e("VideoEditViewModel", "Error parsing JSON: ${e.message}")
             null
@@ -313,12 +327,14 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
         Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
         showProgressDialog()
         viewModelScope.launch {
+            Log.d("VideoEditorViewModel", "Edit settings for export: $editSettings")
             val videoEditor = VideoEditor()
             val mergeResult = project?.let {
                 videoEditor.trimAndMergeToTempFile(
                     context,
                     editSettings,
-                    it.mediaNames // Pass the mediaNameMap
+                    it.mediaNames,
+                    it.audioPath
                 )
             }
 
