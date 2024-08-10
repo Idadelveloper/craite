@@ -4,30 +4,22 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.OptIn
-import androidx.compose.foundation.layout.add
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.core.graphics.transform
-import androidx.lifecycle.get
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DataSource
-import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.effect.OverlayEffect
-import androidx.media3.effect.TextureOverlay
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.ConcatenatingMediaSource
-import androidx.media3.exoplayer.source.ConcatenatingMediaSource2
-import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.Transformer
+import com.example.craite.data.AudioEdit
 import com.example.craite.data.CraiteTextOverlay
 import com.example.craite.data.EditSettings
 import com.example.craite.data.MediaEffect
@@ -48,7 +40,8 @@ class VideoEditor {
     suspend fun trimAndMergeToTempFile(
         context: Context,
         editSettings: EditSettings,
-        mediaNameMap: Map<String, String>
+        mediaNameMap: Map<String, String>,
+        audioPath: String?
     ): Result<String> = runCatching {
         // Sort video edits by ID to ensure correct order
         val sortedVideoEdits = editSettings.video_edits.sortedBy { it.id }
@@ -79,7 +72,8 @@ class VideoEditor {
                                 videoEdit.start_time,
                                 videoEdit.end_time,
                                 mapMediaEffectsToEffects(videoEdit.effects).toMutableList(), // Make effects mutable
-                                videoEdit.text
+                                videoEdit.text,
+                                editSettings.audio_edits
                             )
                         } else {
                             Log.e("VideoEditor", "File not found: $filePath")
@@ -94,7 +88,7 @@ class VideoEditor {
             File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
         }
 
-        if (!mergeVideos(context, editedMediaItems, tempFile.absolutePath)) {
+        if (!mergeVideos(context, editedMediaItems, tempFile.absolutePath, editSettings.audio_edits, audioPath)) {
             throw Exception("Video merging failed")
         }
         tempFile.absolutePath
@@ -108,7 +102,8 @@ class VideoEditor {
         startTimeSeconds: Double,
         endTimeSeconds: Double,
         effects: MutableList<Effect>,
-        textOverlays: List<CraiteTextOverlay>
+        textOverlays: List<CraiteTextOverlay>,
+        audioEdits: AudioEdit? = null
     ): EditedMediaItem? {
         return suspendCancellableCoroutine { continuation ->
             var editedMediaItem: EditedMediaItem? = null
@@ -194,7 +189,9 @@ class VideoEditor {
     private suspend fun mergeVideos(
         context: Context,
         editedMediaItems: List<EditedMediaItem>,
-        outputFilePath: String
+        outputFilePath: String,
+        audioEdits: AudioEdit? = null,
+        audioPath: String?
     ): Boolean {
         return suspendCancellableCoroutine { continuation ->
             val listener = object : Transformer.Listener {
@@ -219,7 +216,43 @@ class VideoEditor {
 
             try {
                 val videoSequence = EditedMediaItemSequence(editedMediaItems)
-                val composition = Composition.Builder(videoSequence).build()
+                var audioSequence: EditedMediaItemSequence? = null
+
+                // Add audio track if available
+                if (audioEdits != null && audioPath != null) {
+                    val audioStartTimeMillis = (audioEdits.start_time?.times(1000))?.toLong() ?: 0L
+                    val audioEndTimeMillis = (audioEdits.end_time?.times(1000))?.toLong() ?: Long.MAX_VALUE
+
+                    Log.d("VideoEditor", "Audio Start Time: $audioStartTimeMillis, Audio End Time: $audioEndTimeMillis")
+
+                    val audioMediaItem = MediaItem.Builder()
+                        .setUri(audioPath)
+                        .setClippingConfiguration(
+                            ClippingConfiguration.Builder()
+                                .setStartPositionMs(audioStartTimeMillis)
+                                .setEndPositionMs(audioEndTimeMillis)
+                                .build()
+                        )
+                        .build()
+
+                    // Create EditedMediaItem for audio
+                    val editedAudioItem = EditedMediaItem.Builder(audioMediaItem).build()
+
+                    // Create EditedMediaItemSequence for audio (with looping if needed)
+                    val backgroundAudioSequence = EditedMediaItemSequence(
+                        ImmutableList.of(editedAudioItem),
+                        /* isLooping= */ true
+                    )
+
+                    audioSequence = backgroundAudioSequence
+                    Log.d("VideoEditor", "Audio Sequence: $audioSequence")
+                }
+
+                val composition = if (audioSequence != null) {
+                    Composition.Builder(videoSequence, audioSequence).build()
+                } else {
+                    Composition.Builder(videoSequence).build()
+                }
 
                 transformer.start(composition, outputFilePath)
 

@@ -119,9 +119,9 @@ fun VideoEditorScreen(
         Log.d("VideoEditScreen", "Prompt: ${project.prompt}")
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.initializeCache(context)
-    }
+//    LaunchedEffect(Unit) {
+//        viewModel.initializeCache(context)
+//    }
 
 
     // Combined LaunchedEffect for media sources and preview

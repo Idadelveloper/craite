@@ -223,6 +223,7 @@ class NewProjectViewModel : ViewModel() {
                                 if (audioFilePath != null) {
                                     projectDao.updateAudioPath(projectId, audioFilePath)
                                     Log.d("NewProjectViewModel", "Audio path updated in Room database")
+
                                 } else {
                                     Log.e("NewProjectViewModel", "Failed to save audio to MediaStore")
                                     // Handle the error appropriately (e.g., display a message)
