@@ -22,7 +22,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
-import androidx.activity.result.launch
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,12 +41,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,12 +58,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewModelScope
@@ -78,9 +77,7 @@ import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.OutputStream
-import kotlin.text.clear
 
 
 //@Preview(showBackground = true)
@@ -102,30 +99,35 @@ fun NewProjectScreen(
     var prompt by remember { mutableStateOf("") }
 
     val projectCreationInitiated by newProjectViewModel.projectCreationInitiated.collectAsState()
+    var showDialog: Boolean? by remember {
+        mutableStateOf(null)
+    }
 
     var thumbnailData by remember { mutableStateOf<List<Pair<Uri?, String?>>>(emptyList()) }
     var footagesNotSelected by remember { mutableStateOf(true) }
 
-    val pickMultipleMedia = rememberLauncherForActivityResult(PickMultipleVisualMedia(10)) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) {
-            selectedMedia = uris
-            footagesNotSelected = false
-            newProjectViewModel.viewModelScope.launch {
-                thumbnailData = uris.map { uri ->
-                    getThumbnailUriFromVideo(context, uri)
+    val pickMultipleMedia =
+        rememberLauncherForActivityResult(PickMultipleVisualMedia(10)) { uris: List<Uri> ->
+            if (uris.isNotEmpty()) {
+                selectedMedia = uris
+                footagesNotSelected = false
+                newProjectViewModel.viewModelScope.launch {
+                    thumbnailData = uris.map { uri ->
+                        getThumbnailUriFromVideo(context, uri)
+                    }
                 }
-            }
             }
         }
 
-    val pickAudio = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        Log.d("AudioPicker", "Result: $result")
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                selectedAudio = uri
+    val pickAudio =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            Log.d("AudioPicker", "Result: $result")
+            if (result.resultCode == Activity.RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    selectedAudio = uri
+                }
             }
         }
-    }
 
 
     val localConfiguration: Configuration = LocalConfiguration.current
@@ -136,7 +138,27 @@ fun NewProjectScreen(
             val projectId = projectDatabase.projectDao().getLastInsertedProject().id
 //            navController.navigate("video_edit_screen/$projectId")
             navController.navigate("video_editor_screen/$projectId")
+            showDialog = false
         }
+    }
+
+    if (showDialog != null && showDialog as Boolean) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Please Wait") },
+            text = {
+                Text(
+                    "Project upload in progress...\nPlease don't leave this screen",
+                )
+            },
+
+            confirmButton = {
+                // You can add a button to dismiss the dialog if needed
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Dismiss")
+                }
+            }
+        )
     }
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -151,27 +173,29 @@ fun NewProjectScreen(
         }
     }
 
-    val requestAudioPermissionLauncher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
-        if (isGranted) {
-            // Permission granted, launch the audio picker
-            val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
-            pickAudio.launch(intent)
-        } else {
-            // Permission denied, handle accordingly (e.g., show a message)
-            Log.d("Permission", "READ_EXTERNAL_STORAGE permission denied")
+    val requestAudioPermissionLauncher =
+        rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission granted, launch the audio picker
+                val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+                pickAudio.launch(intent)
+            } else {
+                // Permission denied, handle accordingly (e.g., show a message)
+                Log.d("Permission", "READ_EXTERNAL_STORAGE permission denied")
+            }
         }
-    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
             GradientImageBackground(
-                modifier = Modifier.height((localConfiguration.screenHeightDp * .8).dp),
+                modifier = Modifier.height((localConfiguration.screenHeightDp * .3).dp),
                 painter = painterResource(R.drawable.surfing),
                 contentDescription = "Surfer surfing",
-                gradientColor = AppColor().black
-            )
+                gradientColor = AppColor().black,
+
+                )
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
@@ -195,15 +219,18 @@ fun NewProjectScreen(
                     }
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Footages", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Footages",
+                    style = MaterialTheme.typography.titleMedium.copy(color = AppColor().white)
+                )
                 // Conditional Thumbnail Display
                 if (footagesNotSelected) {
                     // Show default surfing footage
                     Text(
                         text = "No selected media",
+                        textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            fontWeight = FontWeight.Bold,
+                            color = AppColor().white,
                             fontStyle = FontStyle.Italic
                         )
                     )
@@ -258,10 +285,17 @@ fun NewProjectScreen(
 
                     Button(
                         onClick = {
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.READ_MEDIA_AUDIO
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
                                 Log.d("Permission", "READ_EXTERNAL_STORAGE permission granted")
                                 // Permission already granted, launch audio picker
-                                val intent = Intent(Intent.ACTION_PICK, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+                                val intent = Intent(
+                                    Intent.ACTION_PICK,
+                                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                                )
                                 pickAudio.launch(intent)
                             } else {
                                 // Request permission
@@ -301,8 +335,7 @@ fun NewProjectScreen(
                     Text(
                         text = "No selected audio",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            fontWeight = FontWeight.Bold,
+                            color = AppColor().white,
                             fontStyle = FontStyle.Italic
                         ),
                         modifier = Modifier.padding(top = 8.dp)
@@ -324,6 +357,7 @@ fun NewProjectScreen(
                 Button(
                     onClick = {
                         if (user != null) {
+                            showDialog = !projectCreationInitiated
                             newProjectViewModel.createProject(
                                 projectDatabase.projectDao(),
                                 projectName,
@@ -333,6 +367,8 @@ fun NewProjectScreen(
                                 user,
                                 prompt
                             )
+                            showDialog = !projectCreationInitiated
+
                         }
                     },
                     modifier = Modifier
@@ -375,7 +411,8 @@ suspend fun getThumbnailUriFromVideo(context: Context, videoUri: Uri): Pair<Uri?
                 var outputStream: OutputStream? = null
 
                 try {
-                    imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    imageUri =
+                        resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
                     outputStream = imageUri?.let { resolver.openOutputStream(it) }
                     if (outputStream != null) {
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)

@@ -1,6 +1,7 @@
 package com.example.craite.ui.screens.home
 
 import android.content.res.Configuration
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,21 +29,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.craite.R
-import com.example.craite.data.models.Project
 import com.example.craite.data.models.ProjectDatabase
 import com.example.craite.ui.screens.composables.GradientImageBackground
 import com.example.craite.ui.screens.home.composables.ProjectThumbnailCard
 import com.example.craite.ui.theme.AppColor
 import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlin.random.Random
 
 
@@ -64,9 +59,10 @@ fun HomeScreenNew(
         Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
             GradientImageBackground(
                 modifier = Modifier.height((localConfiguration.screenHeightDp * .8).dp),
-                painter = painterResource(R.drawable.surfing),
+                //  painter = painterResource(R.drawable.surfing),
                 contentDescription = "Surfer surfing",
-                gradientColor = AppColor().black
+                gradientColor = AppColor().black,
+                videoUri = Uri.parse("android.resource://com.example.craite/${R.raw.video2}")
             )
 
             Column(
