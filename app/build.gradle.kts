@@ -211,6 +211,9 @@ dependencies {
     //Splash Screen
     implementation("androidx.core:core-splashscreen:1.0.1")
 
+    //ExoPlayer
+    implementation("com.google.android.exoplayer:exoplayer:2.18.7")
+
 
 
 
