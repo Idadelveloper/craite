@@ -16,43 +16,43 @@ android {
     compileSdk = 34
 
     packagingOptions {
-        jniLibs.pickFirsts.add ("lib/*/libavdevice_neon.so")
-        pickFirst ("lib/x86/libc++_shared.so")
-        pickFirst ("lib/x86_64/libc++_shared.so")
-        pickFirst ("lib/armeabi-v7a/libc++_shared.so")
-        pickFirst ("lib/arm64-v8a/libc++_shared.so")
+        jniLibs.pickFirsts.add("lib/*/libavdevice_neon.so")
+        pickFirst("lib/x86/libc++_shared.so")
+        pickFirst("lib/x86_64/libc++_shared.so")
+        pickFirst("lib/armeabi-v7a/libc++_shared.so")
+        pickFirst("lib/arm64-v8a/libc++_shared.so")
 
-        pickFirst ("lib/arm64-v8a/libavcodec.so")
-        pickFirst ("lib/arm64-v8a/libavformat.so")
-        pickFirst ("lib/arm64-v8a/libavutil.so")
-        pickFirst ("lib/arm64-v8a/libswscale.so")
-        pickFirst ("lib/arm64-v8a/libavdevice.so")
-        pickFirst ("lib/arm64-v8a/libavfilter.so")
-        pickFirst ("lib/arm64-v8a/libffmpegkit.so")
-        pickFirst ("lib/arm64-v8a/libffmpegkit_abidetect.so")
-        pickFirst ("lib/arm64-v8a/libswresample.so")
-        pickFirst ("lib/arm64-v8a/libswscale.so")
-        pickFirst ("lib/x86/libavcodec.so")
-        pickFirst ("lib/x86/libavformat.so")
-        pickFirst ("lib/x86/libavutil.so")
-        pickFirst ("lib/x86/libswscale.so")
-        pickFirst ("lib/x86/libavdevice.so")
-        pickFirst ("lib/x86/libavfilter.so")
-        pickFirst ("lib/x86/libffmpegkit.so")
-        pickFirst ("lib/x86/libffmpegkit_abidetect.so")
-        pickFirst ("lib/x86/libswresample.so")
-        pickFirst ("lib/x86/libswscale.so")
-        pickFirst ("lib/x86_64/libavcodec.so")
-        pickFirst ("lib/x86_64/libavformat.so")
-        pickFirst ("lib/x86_64/libavutil.so")
-        pickFirst ("lib/x86_64/libswscale.so")
-        pickFirst ("lib/x86_64/libavdevice.so")
-        pickFirst ("lib/x86_64/libavfilter.so")
-        pickFirst ("lib/x86_64/libffmpegkit.so")
-        pickFirst ("lib/x86_64/libffmpegkit_abidetect.so")
-        pickFirst ("lib/x86_64/libswresample.so")
-        pickFirst ("lib/x86_64/libswscale.so")
-        pickFirst ("lib/armeabi-v7a/libavcodec_neon.so")
+        pickFirst("lib/arm64-v8a/libavcodec.so")
+        pickFirst("lib/arm64-v8a/libavformat.so")
+        pickFirst("lib/arm64-v8a/libavutil.so")
+        pickFirst("lib/arm64-v8a/libswscale.so")
+        pickFirst("lib/arm64-v8a/libavdevice.so")
+        pickFirst("lib/arm64-v8a/libavfilter.so")
+        pickFirst("lib/arm64-v8a/libffmpegkit.so")
+        pickFirst("lib/arm64-v8a/libffmpegkit_abidetect.so")
+        pickFirst("lib/arm64-v8a/libswresample.so")
+        pickFirst("lib/arm64-v8a/libswscale.so")
+        pickFirst("lib/x86/libavcodec.so")
+        pickFirst("lib/x86/libavformat.so")
+        pickFirst("lib/x86/libavutil.so")
+        pickFirst("lib/x86/libswscale.so")
+        pickFirst("lib/x86/libavdevice.so")
+        pickFirst("lib/x86/libavfilter.so")
+        pickFirst("lib/x86/libffmpegkit.so")
+        pickFirst("lib/x86/libffmpegkit_abidetect.so")
+        pickFirst("lib/x86/libswresample.so")
+        pickFirst("lib/x86/libswscale.so")
+        pickFirst("lib/x86_64/libavcodec.so")
+        pickFirst("lib/x86_64/libavformat.so")
+        pickFirst("lib/x86_64/libavutil.so")
+        pickFirst("lib/x86_64/libswscale.so")
+        pickFirst("lib/x86_64/libavdevice.so")
+        pickFirst("lib/x86_64/libavfilter.so")
+        pickFirst("lib/x86_64/libffmpegkit.so")
+        pickFirst("lib/x86_64/libffmpegkit_abidetect.so")
+        pickFirst("lib/x86_64/libswresample.so")
+        pickFirst("lib/x86_64/libswscale.so")
+        pickFirst("lib/armeabi-v7a/libavcodec_neon.so")
     }
 
     defaultConfig {
@@ -195,7 +195,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     //Fluent UI
-   // implementation("com.microsoft.fluentui:FluentUIAndroid:0.2.9")
+    // implementation("com.microsoft.fluentui:FluentUIAndroid:0.2.9")
     implementation("com.microsoft.fluentui:fluentui_icons:0.2.0")
 
     //Google Fonts
@@ -207,6 +207,9 @@ dependencies {
     implementation("com.otaliastudios:transcoder:0.10.5")
 
     implementation("com.writingminds:FFmpegAndroid:0.3.2")
+
+    //Splash Screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
 
 
