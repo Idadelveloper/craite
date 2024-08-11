@@ -271,6 +271,7 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     // Parse JSON into EditSettings
     private fun parseEditSettingsFromJson(json: Map<*, *>?): EditSettings? {
         return try {
+            Log.d("VideoEditViewModel", "JSON received: $json")
             val videoEditsJson = json?.get("video_edits") as? List<Map<String, Any>>
             val videoEdits = videoEditsJson?.map { videoEditJson ->
                 VideoEdit(
@@ -301,19 +302,20 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                     transition = videoEditJson["transition"] as? String ?: ""
                 )
             } ?: emptyList()
+            Log.d("VideoEditViewModel", "Video Edits: $videoEdits")
 
             // Parse audio edits
             val audioEditsJson = json?.get("audio_edits") as? Map<String, Any>
             val audioEdits = audioEditsJson?.let {
-                (it["end_time"] as? Double)?.let { it1 ->
-                    AudioEdit(
-                        start_time = (it["start_time"] as? Double)!!,
-                        end_time = it1
-                    )
+                val startTime = it["start_time"] as? Double ?: 0.0 // Default to 0 if null
+                val endTime = it["end_time"] as? Double
+                if (endTime != null) { // Only create AudioEdit if endTime is not null
+                    AudioEdit(start_time = startTime, end_time = endTime)
+                } else {
+                    null // Or handle the case where endTime is null differently
                 }
             }
             Log.d("VideoEditViewModel", "Audio Edits: $audioEdits")
-            Log.d("VideoEditViewModel", "Video Edits: $videoEdits")
 
             EditSettings(video_edits = videoEdits, audio_edits = audioEdits)
         } catch (e: Exception) {
