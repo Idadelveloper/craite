@@ -6,17 +6,18 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(GeminiResponseApi.BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
-        .client( // Add OkHttpClient with timeouts
-            OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .build()
-        )
-        .build()
-
-    val geminiResponseApi: GeminiResponseApi = retrofit.create(GeminiResponseApi::class.java)
+    fun createGeminiResponseApi(baseUrl: String): GeminiResponseApi {
+        val retrofit = Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(10, TimeUnit.SECONDS)
+                    .writeTimeout(10, TimeUnit.SECONDS)
+                    .build()
+            )
+            .build()
+        return retrofit.create(GeminiResponseApi::class.java)
+    }
 }

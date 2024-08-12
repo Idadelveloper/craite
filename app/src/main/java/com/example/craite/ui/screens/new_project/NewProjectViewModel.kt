@@ -304,12 +304,8 @@ class NewProjectViewModel : ViewModel() {
                     // Trigger video processing (fire-and-forget)
                     launch(Dispatchers.IO) {
                         try {
-                            Log.d("NewProjectViewModel", "Triggering video processing")
-                            Log.d("NewProjectViewModel", "User ID: ${user.uid}")
-                            Log.d("NewProjectViewModel", "Prompt: $prompt")
-                            Log.d("NewProjectViewModel", "Project ID: $projectId")
-                            Log.d("NewProjectViewModel", "Prompt ID: ${promptDocRef.id}")
-                            triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id)
+                            val baseUrl = "your_backend_server_base_url_here"
+                            triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id, baseUrl)
                         } catch (e: Exception) {
                             Log.e("NewProjectViewModel", "Error triggering video processing: ${e.message}")
                             // Handle the error appropriately (e.g., log it or show a message to the user)
@@ -476,13 +472,17 @@ class NewProjectViewModel : ViewModel() {
         userId: String,
         prompt: String,
         projectId: Int,
-        promptId: String
+        promptId: String,
+        baseUrl: String
     ) {
 
         val geminiRequest = GeminiRequest(userId, prompt, projectId, promptId)
 
+        // Create GeminiResponseApi instance with baseUrl
+        val geminiResponseApi = RetrofitClient.createGeminiResponseApi(baseUrl)
+
         // Make the network request to the Flask backend
-        val response = RetrofitClient.geminiResponseApi.processVideos(geminiRequest)
+        val response = geminiResponseApi.processVideos(geminiRequest)
 
         // Log the response code for basic error handling
         Log.d("NewProjectViewModel", "Video processing triggered, response code: ${response.code()}")
