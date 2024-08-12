@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -291,18 +292,31 @@ class NewProjectViewModel : ViewModel() {
                 Log.d("Firestore", "Prompt data added with ID: ${promptDocRef.id}")
                 Toast.makeText(context, "Prompt data added with ID: ${promptDocRef.id}", Toast.LENGTH_SHORT).show()
 
-                // Update prompt and promptId in the Room database
+                // Update Room database and trigger video processing in a coroutine
                 viewModelScope.launch {
                     projectDao.updatePromptData(projectId, prompt, promptDocRef.id)
                     Log.d("NewProjectViewModel", "Prompt data updated in Room database")
 
-                    // Update the project in the Room database with the mediaNames map
                     projectDao.updateMediaNames(projectId, mediaNames)
                     projectDao.updateUploadCompleted(projectId, true)
                     Log.d("NewProjectViewModel", "Media names and upload status updated in Room database")
 
-                    // Trigger video processing and set project creation initiated flag
-                    triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id)
+                    // Trigger video processing (fire-and-forget)
+                    launch(Dispatchers.IO) {
+                        try {
+                            Log.d("NewProjectViewModel", "Triggering video processing")
+                            Log.d("NewProjectViewModel", "User ID: ${user.uid}")
+                            Log.d("NewProjectViewModel", "Prompt: $prompt")
+                            Log.d("NewProjectViewModel", "Project ID: $projectId")
+                            Log.d("NewProjectViewModel", "Prompt ID: ${promptDocRef.id}")
+                            triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id)
+                        } catch (e: Exception) {
+                            Log.e("NewProjectViewModel", "Error triggering video processing: ${e.message}")
+                            // Handle the error appropriately (e.g., log it or show a message to the user)
+                        }
+                    }
+
+                    // Set project creation initiated flag
                     _projectCreationInitiated.value = true
                 }
             }
@@ -458,28 +472,20 @@ class NewProjectViewModel : ViewModel() {
         return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 
-    private fun triggerVideoProcessing(
+    private suspend fun triggerVideoProcessing(
         userId: String,
         prompt: String,
         projectId: Int,
         promptId: String
     ) {
-        viewModelScope.launch {
-            val repository: EditSettingsRepository =
-                EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
-            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId))
-                .collect { result ->
-                    when (result) {
-                        is GeminiResult.Success -> {
-                            Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
-//                            result.data?.let { updateEditSettings(it) }
-                        }
-                        is GeminiResult.Error -> {
-                            Log.e("VideoEditViewModel", "Error fetching edit settings: ${result.message}")
-                        }
-                    }
-                }
-        }
+
+        val geminiRequest = GeminiRequest(userId, prompt, projectId, promptId)
+
+        // Make the network request to the Flask backend
+        val response = RetrofitClient.geminiResponseApi.processVideos(geminiRequest)
+
+        // Log the response code for basic error handling
+        Log.d("NewProjectViewModel", "Video processing triggered, response code: ${response.code()}")
     }
 
 }
