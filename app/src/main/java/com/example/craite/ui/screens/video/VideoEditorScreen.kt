@@ -310,7 +310,12 @@ fun VideoEditorScreen(
                         }
                     }
                 }
-                Row {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
                     Button(
                         onClick = { viewModel.getGeminiEdits(user?.uid ?: "", project, projectDatabase) }, // Get firestore data
                         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -318,12 +323,12 @@ fun VideoEditorScreen(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text(text = "Get gemini edits")
+                        Text(text = "Get edits")
                     }
 
                     Button(onClick = { viewModel.applyFirestoreEdits(user?.uid ?: "", project, context) }
                     ) {
-                        Text("Apply Firestore Edits")
+                        Text("Apply edits")
                     }
                 }
 
