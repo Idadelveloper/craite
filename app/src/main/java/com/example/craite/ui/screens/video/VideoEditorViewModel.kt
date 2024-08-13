@@ -79,7 +79,7 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     private val _intervals = MutableStateFlow<List<Long>>(emptyList())
     val intervals: StateFlow<List<Long>> = _intervals.asStateFlow()
 
-    private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
+//    private val repository: EditSettingsRepository = EditSettingsRepositoryImpl(RetrofitClient.geminiResponseApi)
 
     private val _composition = MutableStateFlow<Composition?>(null)
     val composition: StateFlow<Composition?> = _composition.asStateFlow()
@@ -165,22 +165,22 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     }
 
     // Fetch edit settings
-    fun fetchEditSettings(userId: String, prompt: String, projectId: Int, promptId: String) {
-        Log.d("VideoEditViewModel", "Fetching edit settings for user: $userId, prompt: $prompt, project: $projectId")
-        viewModelScope.launch {
-            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId)).collect { result ->
-                when (result) {
-                    is GeminiResult.Success -> {
-                        Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
-                        result.data?.let { updateEditSettings(it) }
-                    }
-                    is GeminiResult.Error -> {
-                        Log.e("VideoEditViewModel", "Error fetching edit settings: ${result.message}")
-                    }
-                }
-            }
-        }
-    }
+//    fun fetchEditSettings(userId: String, prompt: String, projectId: Int, promptId: String) {
+//        Log.d("VideoEditViewModel", "Fetching edit settings for user: $userId, prompt: $prompt, project: $projectId")
+//        viewModelScope.launch {
+//            repository.getEditSettings(GeminiRequest(userId, prompt, projectId, promptId)).collect { result ->
+//                when (result) {
+//                    is GeminiResult.Success -> {
+//                        Log.d("VideoEditViewModel", "Edit settings received: ${result.data}")
+//                        result.data?.let { updateEditSettings(it) }
+//                    }
+//                    is GeminiResult.Error -> {
+//                        Log.e("VideoEditViewModel", "Error fetching edit settings: ${result.message}")
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     // Fetch and save Gemini response
     private fun fetchAndSaveGeminiResponse(

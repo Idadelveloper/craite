@@ -304,7 +304,7 @@ class NewProjectViewModel : ViewModel() {
                     // Trigger video processing (fire-and-forget)
                     launch(Dispatchers.IO) {
                         try {
-                            val baseUrl = "your_backend_server_base_url_here"
+                            val baseUrl = "http://192.168.1.30:5000"
                             triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id, baseUrl)
                         } catch (e: Exception) {
                             Log.e("NewProjectViewModel", "Error triggering video processing: ${e.message}")
