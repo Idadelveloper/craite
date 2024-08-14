@@ -120,7 +120,8 @@ class NewProjectViewModel : ViewModel() {
                 // Generate and save thumbnail for the first video (if available)
                 if (filePaths.isNotEmpty()) {
                     val firstVideoPath = filePaths[0]
-                    val thumbnailResult = getThumbnailUriFromVideo(context, Uri.fromFile(File(firstVideoPath)))
+                    val thumbnailResult =
+                        getThumbnailUriFromVideo(context, Uri.fromFile(File(firstVideoPath)))
                     val thumbnailPath = thumbnailResult.first?.toString()
 
                     if (thumbnailPath != null) {
@@ -142,126 +143,130 @@ class NewProjectViewModel : ViewModel() {
 
                 // Initialize an empty mediaNames map (using file paths as keys)
                 val mediaNames = mutableMapOf<String, String>()
+                val userFolderRef = storageRef.child("users/${user.uid}/projects/$projectId")
+                val uploadJobs = mutableListOf<Deferred<Unit?>>()
 
-                // Upload videos to cloud storage (using file paths)
-                val userFolderRef = storageRef.child("users/${user.uid}/projects/$projectId/videos")
-
-                // Use async to handle video uploads concurrently
-                val videoUploadDeferreds = filePaths.mapIndexed { index, filePath ->
-                    async(Dispatchers.IO) {
+                filePaths.forEachIndexed { index, filePath ->
+                    uploadJobs.add(async(Dispatchers.IO) {
                         val fileName = "video_${index}_${System.currentTimeMillis()}.mp4"
-                        val fileRef = userFolderRef.child(fileName)
+                        val fileRef = userFolderRef.child("videos/$fileName")
                         mediaNames[fileName] = filePath
 
-                        // Create a temporary file for compressed video
-                        val compressedVideoFile = File.createTempFile("compressed_video_$index", ".mp4", context.cacheDir)
+                        val compressedVideoFile =
+                            File.createTempFile("compressed_video_$index", ".mp4", context.cacheDir)
 
-                        // Compress video and save to temporary file
-                        if (File(filePath).exists()) {
-                            Transcoder.into(compressedVideoFile.absolutePath)
-                                .addDataSource(filePath)
-                                // Add compression configuration options here
-                                .setListener(object : TranscoderListener {
-                                    override fun onTranscodeProgress(progress: Double) {
-                                        Log.d("NewProjectViewModel", "Video compression progress: $progress")
-                                    }
-
-                                    override fun onTranscodeCompleted(successCode: Int) {
-                                        // No specific action needed here since upload happens after compression
-                                    }
-
-                                    override fun onTranscodeCanceled() {
-                                        Log.w("FirebaseStorage", "Compression canceled")
-                                        compressedVideoFile.delete() // Delete the temporary file if compression is canceled
-                                    }
-
-                                    override fun onTranscodeFailed(exception: Throwable) {
-                                        Log.e("FirebaseStorage", "Compression failed: ${exception.message}")
-                                        // Use viewModelScope.launch to switch to the main thread
-                                        viewModelScope.launch {
-                                            Toast.makeText(context, "Compression failed: ${exception.message}", Toast.LENGTH_SHORT).show()
-                                        }
-                                        compressedVideoFile.delete()
-                                    }
-                                })
-                                .transcode()
-                        } else {
-                            Log.e("NewProjectViewModel", "File not found for compression: $filePath")
-                            return@async null // Indicate skipped upload
-                        }
-
-                        // Upload compressed video if it exists
-                        if (File(compressedVideoFile.absolutePath).exists()) {
-                            try {
-                                fileRef.putFile(Uri.fromFile(compressedVideoFile)).await() // Use await() for coroutines
-                                // Switch to the main thread to show the Toast
-                                withContext(Dispatchers.Main) {
-                                    Log.d("FirebaseStorage", "File uploaded: ${fileRef.path}")
-                                    Toast.makeText(context, "File uploaded: ${fileRef.path}", Toast.LENGTH_SHORT).show()
+                        // Compress video and upload in onTranscodeCompleted
+                        Transcoder.into(compressedVideoFile.absolutePath)
+                            .addDataSource(filePath)
+                            .setListener(object : TranscoderListener {
+                                override fun onTranscodeProgress(progress: Double) {
+                                    Log.d(
+                                        "NewProjectViewModel",
+                                        "Video compression progress: $progress"
+                                    )
                                 }
-                            } catch (e: Exception) {
-                                // Handle upload failure
-                                withContext(Dispatchers.Main) {
-                                    Log.e("FirebaseStorage", "Upload failed: ${e.message}")
-                                    Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+
+                                override fun onTranscodeCanceled() {
+                                    Log.w("FirebaseStorage", "Compression canceled")
+                                    compressedVideoFile.delete() // Delete the temporary file if compression is canceled
                                 }
-                            }
-                        } else {
-                            null // Indicate failed compression or missing file
-                        }
-                    }
+
+                                override fun onTranscodeFailed(exception: Throwable) {
+                                    Log.e(
+                                        "FirebaseStorage",
+                                        "Compression failed: ${exception.message}"
+                                    )
+                                    // Use viewModelScope.launch to switch to the main thread
+                                    viewModelScope.launch {
+                                        Toast.makeText(
+                                            context,
+                                            "Compression failed: ${exception.message}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                    compressedVideoFile.delete()
+                                }
+
+                                override fun onTranscodeCompleted(successCode: Int) {
+                                    if (File(compressedVideoFile.absolutePath).exists()) {
+                                        fileRef.putFile(Uri.fromFile(compressedVideoFile))
+                                            .addOnSuccessListener {
+                                                Log.d(
+                                                    "FirebaseStorage",
+                                                    "File uploaded: ${fileRef.path}"
+                                                )
+                                                Log.d("NewProjectViewModel", "Video uploaded to Firebase Storage")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e(
+                                                    "FirebaseStorage",
+                                                    "Upload failed: ${e.message}"
+                                                )
+                                                Log.d("NewProjectViewModel", "Video upload failed")
+                                            }
+                                    } else {
+                                        // Handle case where compressed file is missing
+                                        Log.e(
+                                            "NewProjectViewModel",
+                                            "Compressed file not found: ${compressedVideoFile.absolutePath}"
+                                        )
+                                    }
+
+
+                                }
+                            })
+                            .transcode()
+                        null // Indicate that the async task is complete
+                    })
                 }
 
-                // Wait for all video uploads to complete
-                val videoUploadResults = videoUploadDeferreds.awaitAll()
-                if (videoUploadResults.all { it != null }) {
-                    Toast.makeText(context, "Videos uploaded successfully", Toast.LENGTH_SHORT).show()
-
-                    // Handle audio saving and upload (if selected)
-                    var audioUploadDeferred: Deferred<Unit?>? = null
-                    if (audioUri != null) {
+                if (audioUri != null) {
+                    uploadJobs.add(async(Dispatchers.IO) {
                         val audioFilePath = saveAudioToMediaStore(context, audioUri)
-
-                        if (audioFilePath != null) {
-                            projectDao.updateAudioPath(projectId, audioFilePath)
-                            Log.d("NewProjectViewModel", "Audio path updated in Room database")
-
+                        audioFilePath?.let {
                             val audioFileName = "audio_${System.currentTimeMillis()}.mp3"
-                            val audioFileRef = storageRef.child("users/${user.uid}/projects/$projectId/audios/$audioFileName")
+                            val audioFileRef = userFolderRef.child("audios/$audioFileName")
+                            projectDao.updateAudioPath(projectId, it)
 
-                            audioUploadDeferred = async(Dispatchers.IO) {
-                                audioFileRef.putFile(Uri.fromFile(File(audioFilePath))).await() // Use await() for coroutines
-                                Log.d("FirebaseStorage", "Audio file uploaded: ${audioFileRef.path}")
-
-                                // Switch to the main thread to show the Toast
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Audio file uploaded: ${audioFileRef.path}", Toast.LENGTH_SHORT).show()
+                            audioFileRef.putFile(Uri.fromFile(File(it)))
+                                .addOnSuccessListener {
+                                    Log.d(
+                                        "FirebaseStorage",
+                                        "Audio file uploaded: ${audioFileRef.path}"
+                                    )
+                                    Log.d("NewProjectViewModel", "Audio uploaded to Firebase Storage")
+                                    // Send Prompt Data to Firestore (after all uploads are done)
+                                    sendPromptDataToFirestore(context, user, projectId, prompt, mediaNames, projectDao)
                                 }
-
-                                null // Indicate success
-                            }
-                        } else {
-                            Log.e("NewProjectViewModel", "Failed to save audio to MediaStore")
+                                .addOnFailureListener { e ->
+                                    Log.e("FirebaseStorage", "Audio upload failed: ${e.message}")
+                                    Log.d("NewProjectViewModel", "Audio upload failed")
+                                }
                         }
-                    }
-
-                    // Wait for audio upload (if any) and then send prompt data to Firestore
-                    audioUploadDeferred?.await()
-
-                    // Send prompt and video directory to Firestore
-                    sendPromptDataToFirestore(context, user, projectId, prompt, mediaNames, projectDao)
-
-                } else {
-                    // Handle video upload failures
-                    Toast.makeText(context, "Error uploading videos", Toast.LENGTH_SHORT).show()
+                        null // Indicate that the async task is complete
+                    })
                 }
+
+                // Wait for Uploads and Handle Results
+                uploadJobs.awaitAll() // Wait for all uploads to complete (or fail)
+
+
+
+
 
             } catch (e: Exception) {
-                Toast.makeText(context, "Error creating project", Toast.LENGTH_SHORT).show()
-                // Handle the error appropriately
+                // Handle overall project creation error
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "Error creating project: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
     }
+
 
     // Function to send prompt data to Firestore after all uploads are complete
     private fun sendPromptDataToFirestore(
@@ -327,7 +332,7 @@ class NewProjectViewModel : ViewModel() {
         val fileName = getFileName(context, audioUri) ?: return null
         val contentValues = ContentValues().apply {
             put(MediaStore.Audio.Media.DISPLAY_NAME, fileName)
-            put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg") // Adjust MIME type if needed
+            put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Audio.Media.RELATIVE_PATH, Environment.DIRECTORY_MUSIC)
                 put(MediaStore.Audio.Media.IS_PENDING, 1)
