@@ -9,4 +9,7 @@
     <string name="prompt">Prompt</string>
     <string name="prompt_hint">Whats happening in your videos and what do you expect in the final video?</string>
     <string name="create_project">Create Project</string>
+    <string name="get_edits">Get Edits</string>
+    <string name="apply_edits">Apply Edits</string>
+    <string name="export">Export</string>
 </resources>
