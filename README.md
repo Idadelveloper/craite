@@ -80,5 +80,5 @@ val baseUrl = "your_backend_server_base_url_here"
 
 
 ## Contributors
-- Ida Delphine
-- Nui Lewis
+- [Ida Delphine](https://x.com/idadelveloper)
+- [Nui Lewis](https://x.com/nuilewis)
