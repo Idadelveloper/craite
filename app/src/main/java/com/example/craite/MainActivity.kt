@@ -132,22 +132,7 @@ fun CraiteApp(navController: NavHostController, context: Context, currentUser: F
             }
 
         }
-//        composable(
-//            route = "video_edit_screen/{projectId}",
-//            arguments = listOf(navArgument("projectId") { type = NavType.IntType })
-//        ) { backStackEntry ->
-//            val projectId = backStackEntry.arguments?.getInt("projectId") ?: -1
-//
-////            val bundle = backStackEntry.arguments?.getString("bundle")?.let { stringToBundle(it) }
-////            val timestamps = bundle?.getIntegerArrayList("timestamps") ?: arrayListOf()
-//
-//            val project = db.projectDao().getProjectById(projectId).collectAsState(initial = null).value
-//            val mediaUris = project?.media
-//            if (mediaUris != null) {
-//                VideoEditScreen(project, navController, user, db)
-//            }
-//
-//        }
+
     }
 
 
