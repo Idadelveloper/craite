@@ -313,7 +313,6 @@ class NewProjectViewModel : ViewModel() {
                             triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id, baseUrl)
                         } catch (e: Exception) {
                             Log.e("NewProjectViewModel", "Error triggering video processing: ${e.message}")
-                            // Handle the error appropriately (e.g., log it or show a message to the user)
                         }
                     }
 
@@ -410,7 +409,7 @@ class NewProjectViewModel : ViewModel() {
                                 MediaStore.MediaColumns.RELATIVE_PATH,
                                 Environment.DIRECTORY_PICTURES
                             )
-                            put(MediaStore.MediaColumns.IS_PENDING, 1) // Mark as pending
+                            put(MediaStore.MediaColumns.IS_PENDING, 1)
                         }
                     }
 
