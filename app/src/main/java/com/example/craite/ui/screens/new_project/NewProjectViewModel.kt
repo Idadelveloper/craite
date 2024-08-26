@@ -195,7 +195,10 @@ class NewProjectViewModel : ViewModel() {
                                                     "FirebaseStorage",
                                                     "File uploaded: ${fileRef.path}"
                                                 )
-                                                Log.d("NewProjectViewModel", "Video uploaded to Firebase Storage")
+                                                Log.d(
+                                                    "NewProjectViewModel",
+                                                    "Video uploaded to Firebase Storage"
+                                                )
                                             }
                                             .addOnFailureListener { e ->
                                                 Log.e(
@@ -234,9 +237,19 @@ class NewProjectViewModel : ViewModel() {
                                         "FirebaseStorage",
                                         "Audio file uploaded: ${audioFileRef.path}"
                                     )
-                                    Log.d("NewProjectViewModel", "Audio uploaded to Firebase Storage")
+                                    Log.d(
+                                        "NewProjectViewModel",
+                                        "Audio uploaded to Firebase Storage"
+                                    )
                                     // Send Prompt Data to Firestore (after all uploads are done)
-                                    sendPromptDataToFirestore(context, user, projectId, prompt, mediaNames, projectDao)
+                                    sendPromptDataToFirestore(
+                                        context,
+                                        user,
+                                        projectId,
+                                        prompt,
+                                        mediaNames,
+                                        projectDao
+                                    )
                                 }
                                 .addOnFailureListener { e ->
                                     Log.e("FirebaseStorage", "Audio upload failed: ${e.message}")
@@ -249,9 +262,6 @@ class NewProjectViewModel : ViewModel() {
 
                 // Wait for Uploads and Handle Results
                 uploadJobs.awaitAll() // Wait for all uploads to complete (or fail)
-
-
-
 
 
             } catch (e: Exception) {
@@ -295,7 +305,11 @@ class NewProjectViewModel : ViewModel() {
         promptDocRef.set(promptData)
             .addOnSuccessListener {
                 Log.d("Firestore", "Prompt data added with ID: ${promptDocRef.id}")
-                Toast.makeText(context, "Prompt data added with ID: ${promptDocRef.id}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Prompt data added with ID: ${promptDocRef.id}",
+                    Toast.LENGTH_SHORT
+                ).show()
 
                 // Update Room database and trigger video processing in a coroutine
                 viewModelScope.launch {
@@ -304,15 +318,27 @@ class NewProjectViewModel : ViewModel() {
 
                     projectDao.updateMediaNames(projectId, mediaNames)
                     projectDao.updateUploadCompleted(projectId, true)
-                    Log.d("NewProjectViewModel", "Media names and upload status updated in Room database")
+                    Log.d(
+                        "NewProjectViewModel",
+                        "Media names and upload status updated in Room database"
+                    )
 
                     // Trigger video processing (fire-and-forget)
                     launch(Dispatchers.IO) {
                         try {
                             val baseUrl = "http://192.168.1.30:5000"
-                            triggerVideoProcessing(user.uid, prompt, projectId, promptDocRef.id, baseUrl)
+                            triggerVideoProcessing(
+                                user.uid,
+                                prompt,
+                                projectId,
+                                promptDocRef.id,
+                                baseUrl
+                            )
                         } catch (e: Exception) {
-                            Log.e("NewProjectViewModel", "Error triggering video processing: ${e.message}")
+                            Log.e(
+                                "NewProjectViewModel",
+                                "Error triggering video processing: ${e.message}"
+                            )
                         }
                     }
 
@@ -343,7 +369,8 @@ class NewProjectViewModel : ViewModel() {
         var outputStream: OutputStream? = null
 
         try {
-            audioFileUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+            audioFileUri =
+                resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
             outputStream = audioFileUri?.let { resolver.openOutputStream(it) }
             val inputStream = resolver.openInputStream(audioUri)
             inputStream?.use { input ->
@@ -370,7 +397,10 @@ class NewProjectViewModel : ViewModel() {
                 tempFile.absolutePath
             } else {
                 // For older Android versions, get the file path directly from the content URI
-                val audioFile = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), fileName)
+                val audioFile = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                    fileName
+                )
                 audioFile.absolutePath
             }
         } catch (e: Exception) {
@@ -454,7 +484,8 @@ class NewProjectViewModel : ViewModel() {
         for (filePath in filePaths) {
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(filePath)
-            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            val durationStr =
+                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
             durationStr?.toLongOrNull()?.let {
                 totalDurationMillis += it
             }
@@ -489,7 +520,10 @@ class NewProjectViewModel : ViewModel() {
         val response = geminiResponseApi.processVideos(geminiRequest)
 
         // Log the response code for basic error handling
-        Log.d("NewProjectViewModel", "Video processing triggered, response code: ${response.code()}")
+        Log.d(
+            "NewProjectViewModel",
+            "Video processing triggered, response code: ${response.code()}"
+        )
     }
 
 }

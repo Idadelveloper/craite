@@ -47,7 +47,10 @@ fun FootageDetailsDialog(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                FootageThumbnail(modifier = Modifier.width(100.dp), uri = Uri.parse("android.resource://com.example.craite/${R.drawable.surfing}"))
+                FootageThumbnail(
+                    modifier = Modifier.width(100.dp),
+                    uri = Uri.parse("android.resource://com.example.craite/${R.drawable.surfing}")
+                )
                 CraiteTextField(
                     label = "Video Content",
                     hintText = "Video Description",
