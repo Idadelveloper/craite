@@ -89,7 +89,10 @@ fun VideoEditorScreen(
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
     val viewModel: VideoEditorViewModel = viewModel(
         factory = VideoEditorViewModelFactory(
-            project?.editingSettings ?: EditSettings(emptyList(), null) // Pass EditSettings from project
+            project?.editingSettings ?: EditSettings(
+                emptyList(),
+                null
+            ) // Pass EditSettings from project
         )
     )
     val editSettings by viewModel.uiState.collectAsState()
@@ -134,7 +137,8 @@ fun VideoEditorScreen(
                 exoPlayer,
                 editSettings,
                 project.mediaNames,
-                onPlayerReady = { playerReady = true
+                onPlayerReady = {
+                    playerReady = true
                     Log.d("VideoEditorScreen", "playerReady set to true")
                 }
             )
@@ -145,7 +149,11 @@ fun VideoEditorScreen(
     LaunchedEffect(playerReady) {
         if (playerReady) {
             snapshotFlow {
-                Triple(exoPlayer.playbackState, exoPlayer.currentPosition, exoPlayer.currentTimeline)
+                Triple(
+                    exoPlayer.playbackState,
+                    exoPlayer.currentPosition,
+                    exoPlayer.currentTimeline
+                )
             }.collect { (playbackState, position, timeline) ->
                 if (playbackState == Player.STATE_READY) {
                     currentPosition = position
@@ -215,7 +223,11 @@ fun VideoEditorScreen(
                                 Button(onClick = {
                                     showResolutionDialog = false
                                     // Call a function in the ViewModel to handle resolution change
-                                    viewModel.changeResolution(context, selectedResolution, exoPlayer)
+                                    viewModel.changeResolution(
+                                        context,
+                                        selectedResolution,
+                                        exoPlayer
+                                    )
                                 }) {
                                     Text("OK")
                                 }
@@ -229,7 +241,14 @@ fun VideoEditorScreen(
                     }
 
                     Button(
-                        onClick = { viewModel.exportVideo(context, project, editSettings, exoPlayer) }, // Implement export video logic
+                        onClick = {
+                            viewModel.exportVideo(
+                                context,
+                                project,
+                                editSettings,
+                                exoPlayer
+                            )
+                        }, // Implement export video logic
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -281,7 +300,8 @@ fun VideoEditorScreen(
                     if (playerReady) {
                         while (true) {
                             if (duration > 0) {
-                                sliderPosition = exoPlayer.currentPosition.toFloat() / duration.toFloat()
+                                sliderPosition =
+                                    exoPlayer.currentPosition.toFloat() / duration.toFloat()
                             }
                             delay(100) // Update every 100 milliseconds
                         }
@@ -317,7 +337,13 @@ fun VideoEditorScreen(
                         .padding(horizontal = 16.dp)
                 ) {
                     Button(
-                        onClick = { viewModel.getGeminiEdits(user?.uid ?: "", project, projectDatabase) }, // Get firestore data
+                        onClick = {
+                            viewModel.getGeminiEdits(
+                                user?.uid ?: "",
+                                project,
+                                projectDatabase
+                            )
+                        }, // Get firestore data
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -326,7 +352,13 @@ fun VideoEditorScreen(
                         Text(text = "Get edits")
                     }
 
-                    Button(onClick = { viewModel.applyFirestoreEdits(user?.uid ?: "", project, context) }
+                    Button(onClick = {
+                        viewModel.applyFirestoreEdits(
+                            user?.uid ?: "",
+                            project,
+                            context
+                        )
+                    }
                     ) {
                         Text("Apply edits")
                     }

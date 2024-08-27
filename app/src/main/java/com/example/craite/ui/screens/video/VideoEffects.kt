@@ -34,7 +34,7 @@ import kotlin.math.sqrt
 import kotlin.text.toDouble
 import kotlin.text.toFloat
 
-class  VideoEffects {
+class VideoEffects {
     @OptIn(UnstableApi::class)
     fun zoomIn(zoomFactor: Float = 2f, durationUs: Long = 1_000_000L): MatrixTransformation {
         return MatrixTransformation { presentationTimeUs ->
@@ -52,7 +52,7 @@ class  VideoEffects {
             val transformationMatrix = Matrix()
             val progress = min(1f, presentationTimeUs.toFloat() / durationUs)
             val scale = 1f - progress * (1f - zoomFactor)
-            transformationMatrix.postScale(/* x */ scale, /* y */ scale)
+            transformationMatrix.postScale(scale, scale)
             transformationMatrix
         }
     }
@@ -87,9 +87,9 @@ class  VideoEffects {
             .build()
     }
 
-    // Helper function to calculate the vignette scale (modified)
+    // Helper function to calculate the vignette scale
     private fun vignetteScale(outerRadius: Float, innerRadius: Float): Float {
-        // Calculate the average scale for the entire frame (simplified for demonstration)
+        // Calculate the average scale for the entire frame
         val distanceFromCenter = sqrt(
             (0.5f - 0.5f).toDouble().pow(2.0) + (0.5f - 0.5f).toDouble().pow(2.0)
         ).toFloat()
@@ -136,7 +136,8 @@ class  VideoEffects {
 
         return if (distanceFromCenter <= radius) {
             val theta = atan2((y - centerY).toDouble(), (x - centerX).toDouble())
-            val newRadius = radius * sin(Math.PI / 2 * (distanceFromCenter / radius)) / (Math.PI / 2)
+            val newRadius =
+                radius * sin(Math.PI / 2 * (distanceFromCenter / radius)) / (Math.PI / 2)
             val offset = (newRadius.toFloat() - distanceFromCenter) * strength
             if (x == centerX) offset else offset * cos(theta).toFloat() // Adjust for x or y offset
         } else {

@@ -120,8 +120,11 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     }
 
 
-
-    fun updateEditSettings(newEditSettings: EditSettings, context: Context, mediaMap: Map<String, String>) {
+    fun updateEditSettings(
+        newEditSettings: EditSettings,
+        context: Context,
+        mediaMap: Map<String, String>
+    ) {
         _uiState.value = newEditSettings
         _downloadButtonEnabled.value = true
 
@@ -202,7 +205,8 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
 
                     val documentSnapshot = docRef.get().await()
                     if (documentSnapshot.exists()) {
-                        val geminiResponseJson = documentSnapshot.get("geminiResponse") as? Map<*, *>
+                        val geminiResponseJson =
+                            documentSnapshot.get("geminiResponse") as? Map<*, *>
                         val editSettings = geminiResponseJson?.let { parseEditSettingsFromJson(it) }
 
                         if (editSettings != null) {
@@ -210,11 +214,19 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                             val geminiResponse = GeminiResponse(editSettings)
 
                             // Update both GeminiResponse and EditSettings in the database
-                            projectDatabase.projectDao().updateGeminiResponse(projectId, geminiResponse)
-                            projectDatabase.projectDao().updateEditingSettings(projectId, editSettings)
-                            Log.d("VideoEditViewModel", "Gemini response and EditSettings updated in Room database")
+                            projectDatabase.projectDao()
+                                .updateGeminiResponse(projectId, geminiResponse)
+                            projectDatabase.projectDao()
+                                .updateEditingSettings(projectId, editSettings)
+                            Log.d(
+                                "VideoEditViewModel",
+                                "Gemini response and EditSettings updated in Room database"
+                            )
                             val project = projectDatabase.projectDao().getProjectById(projectId)
-                            Log.d("VideoEditViewModel", "Edit settings: ${project.first().editingSettings}")
+                            Log.d(
+                                "VideoEditViewModel",
+                                "Edit settings: ${project.first().editingSettings}"
+                            )
 
                             // Update the UI state with the fetched EditSettings
                             _uiState.value = editSettings
@@ -235,7 +247,13 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     }
 
     // Fetch and apply Firestore edits
-    fun fetchAndApplyFirestoreEdits(userId: String, projectId: Int, promptId: String, mediaNames: Map<String, String>, context: Context) {
+    fun fetchAndApplyFirestoreEdits(
+        userId: String,
+        projectId: Int,
+        promptId: String,
+        mediaNames: Map<String, String>,
+        context: Context
+    ) {
         viewModelScope.launch {
             showProgressDialog()
             try {
@@ -255,7 +273,10 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                             updateEditSettings(settings)
                         }
                     } else {
-                        Log.e("VideoEditViewModel", "Gemini response not found in Firestore document")
+                        Log.e(
+                            "VideoEditViewModel",
+                            "Gemini response not found in Firestore document"
+                        )
                     }
                 } else {
                     Log.e("VideoEditViewModel", "Firestore document not found")
@@ -286,7 +307,8 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                     effects = (videoEditJson["effects"] as? List<Map<String, Any>>)?.map { effectJson ->
                         MediaEffect(
                             name = effectJson["name"] as? String ?: "",
-                            adjustment = (effectJson["adjustment"] as? List<Double>)?.map { it.toFloat() } ?: emptyList()
+                            adjustment = (effectJson["adjustment"] as? List<Double>)?.map { it.toFloat() }
+                                ?: emptyList()
                         )
                     } ?: emptyList(),
                     end_time = videoEditJson["end_time"] as? Double ?: 0.0,
@@ -325,7 +347,12 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
     }
 
     // Export video
-    fun exportVideo(context: Context, project: Project?, editSettings: EditSettings, exoPlayer: ExoPlayer) {
+    fun exportVideo(
+        context: Context,
+        project: Project?,
+        editSettings: EditSettings,
+        exoPlayer: ExoPlayer
+    ) {
         Toast.makeText(context, "Processing video", Toast.LENGTH_SHORT).show()
         showProgressDialog()
         viewModelScope.launch {
@@ -368,7 +395,10 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
                                     inputStream.copyTo(outputStream)
                                 }
                                 File(mergedVideoPath).delete() // Delete temporary file
-                                Log.d("VideoEditorViewModel", "Video saved to MediaStore: $videoUri")
+                                Log.d(
+                                    "VideoEditorViewModel",
+                                    "Video saved to MediaStore: $videoUri"
+                                )
                                 Toast.makeText(
                                     context,
                                     "Video saved to MediaStore: $videoUri",
@@ -482,7 +512,8 @@ class VideoEditorViewModel(initialEditSettings: EditSettings) : ViewModel() {
             val outputFilePath = outputFile.absolutePath
 
             // 3. Build the FFmpeg command
-            val command = "-i $currentVideoPath -s $resolution -c:v libx264 -crf 23 -preset ultrafast -c:a copy $outputFilePath"
+            val command =
+                "-i $currentVideoPath -s $resolution -c:v libx264 -crf 23 -preset ultrafast -c:a copy $outputFilePath"
 
             // 4. Execute the FFmpeg command using FFmpegKit
             FFmpegKit.executeAsync(command) { session ->

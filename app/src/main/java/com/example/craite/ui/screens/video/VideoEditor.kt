@@ -88,7 +88,14 @@ class VideoEditor {
             File.createTempFile("temp_merged_video", ".mp4", context.cacheDir)
         }
 
-        if (!mergeVideos(context, editedMediaItems, tempFile.absolutePath, editSettings.audio_edits, audioPath)) {
+        if (!mergeVideos(
+                context,
+                editedMediaItems,
+                tempFile.absolutePath,
+                editSettings.audio_edits,
+                audioPath
+            )
+        ) {
             throw Exception("Video merging failed")
         }
         tempFile.absolutePath
@@ -109,7 +116,8 @@ class VideoEditor {
             var editedMediaItem: EditedMediaItem? = null
 
             val listener = object : Transformer.Listener {
-                @Deprecated("Deprecated in Java",
+                @Deprecated(
+                    "Deprecated in Java",
                     ReplaceWith("continuation.resume(editedMediaItem)", "kotlin.coroutines.resume")
                 )
                 override fun onTransformationCompleted(inputMediaItem: MediaItem) {
@@ -117,7 +125,10 @@ class VideoEditor {
                 }
 
                 @Deprecated("Deprecated in Java")
-                override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
+                override fun onTransformationError(
+                    inputMediaItem: MediaItem,
+                    exception: Exception
+                ) {
                     Log.e("VideoEditor", "Transformation error: ${exception.message}")
                     continuation.resume(null)
                 }
@@ -195,7 +206,8 @@ class VideoEditor {
     ): Boolean {
         return suspendCancellableCoroutine { continuation ->
             val listener = object : Transformer.Listener {
-                @Deprecated("Deprecated in Java",
+                @Deprecated(
+                    "Deprecated in Java",
                     ReplaceWith("continuation.resume(true)", "kotlin.coroutines.resume")
                 )
                 override fun onTransformationCompleted(inputMediaItem: MediaItem) {
@@ -203,12 +215,18 @@ class VideoEditor {
                 }
 
                 @Deprecated("Deprecated in Java")
-                override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
+                override fun onTransformationError(
+                    inputMediaItem: MediaItem,
+                    exception: Exception
+                ) {
                     Log.e("VideoEditor", "Transformation error: ${exception.message}")
                     continuation.resume(false)
                 }
             }
-            Log.d("VideoEditor", "Merging videos: $editedMediaItems to $outputFilePath") // Log the merging process
+            Log.d(
+                "VideoEditor",
+                "Merging videos: $editedMediaItems to $outputFilePath"
+            ) // Log the merging process
 
             val transformer = Transformer.Builder(context)
                 .addListener(listener)
@@ -221,9 +239,13 @@ class VideoEditor {
                 // Add audio track if available
                 if (audioEdits != null && audioPath != null) {
                     val audioStartTimeMillis = (audioEdits.start_time?.times(1000))?.toLong() ?: 0L
-                    val audioEndTimeMillis = (audioEdits.end_time?.times(1000))?.toLong() ?: Long.MAX_VALUE
+                    val audioEndTimeMillis =
+                        (audioEdits.end_time?.times(1000))?.toLong() ?: Long.MAX_VALUE
 
-                    Log.d("VideoEditor", "Audio Start Time: $audioStartTimeMillis, Audio End Time: $audioEndTimeMillis")
+                    Log.d(
+                        "VideoEditor",
+                        "Audio Start Time: $audioStartTimeMillis, Audio End Time: $audioEndTimeMillis"
+                    )
 
                     val audioMediaItem = MediaItem.Builder()
                         .setUri(audioPath)
@@ -274,7 +296,13 @@ class VideoEditor {
                 "brightness" -> effects.add(videoEffects.brightness(effect.adjustment[0]))
                 "contrast" -> effects.add(videoEffects.contrast(effect.adjustment[0]))
                 "saturation" -> effects.add(videoEffects.saturation(effect.adjustment[0]))
-                "vignette" -> effects.add(videoEffects.vignette(effect.adjustment[0], effect.adjustment[1]))
+                "vignette" -> effects.add(
+                    videoEffects.vignette(
+                        effect.adjustment[0],
+                        effect.adjustment[1]
+                    )
+                )
+
                 "fisheye" -> effects.add(videoEffects.fisheye(effect.adjustment[0]))
                 "colorTint" -> effects.add(videoEffects.colorTint(effect.adjustment[0].toString()))
                 "rotate" -> effects.add(videoEffects.rotate(effect.adjustment[0].toInt()))
@@ -328,7 +356,11 @@ class VideoEditor {
                                 text = textOverlay.text,
                                 fontSize = 50,
                                 textColor = Color(android.graphics.Color.parseColor(textOverlay.text_color)).toArgb(),
-                                backgroundColor = Color(android.graphics.Color.parseColor(textOverlay.background_color)).toArgb()
+                                backgroundColor = Color(
+                                    android.graphics.Color.parseColor(
+                                        textOverlay.background_color
+                                    )
+                                ).toArgb()
                             )
                         }
                         if (textureOverlays.isNotEmpty()) {

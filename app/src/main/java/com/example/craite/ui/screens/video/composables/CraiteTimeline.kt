@@ -162,7 +162,7 @@ fun ClipItem(
         // Trimmed Box
         Box(
             modifier = Modifier
-                .width(with(density){boxWidthPx.toDp()}) // Use density.toDp()
+                .width(with(density) { boxWidthPx.toDp() }) // Use density.toDp()
                 .height(64.dp)
                 .clip(RectangleShape)
                 .offset(x = trimStartOffset.dp)
@@ -175,7 +175,8 @@ fun ClipItem(
                     .border(1.dp, Color.Gray) // Add border to LazyRow
             ) {
                 items(numFramesToDisplay) { offset ->
-                    val frameIndex = (trimStartOffset / itemWidthPx * (frames?.size ?: 0)).toInt() + offset
+                    val frameIndex =
+                        (trimStartOffset / itemWidthPx * (frames?.size ?: 0)).toInt() + offset
                     val frame = frames?.getOrNull(frameIndex)
                     if (frame != null) {
                         Image(
@@ -242,7 +243,8 @@ fun ClipItem(
 fun TimeIntervalDisplay(timeline: Timeline) {
     val lastWindow = Timeline.Window()
     timeline.getWindow(timeline.windowCount - 1, lastWindow)
-    val totalDurationUs = lastWindow.windowStartTimeMs + lastWindow.durationUs // Remove the unnecessary multiplication
+    val totalDurationUs =
+        lastWindow.windowStartTimeMs + lastWindow.durationUs // Remove the unnecessary multiplication
     val totalDurationInSeconds = (totalDurationUs / 1000000).toInt()
     Log.d("TimeIntervalDisplay", "Total Duration in Seconds: $totalDurationInSeconds")
 
@@ -254,10 +256,15 @@ fun TimeIntervalDisplay(timeline: Timeline) {
     ) {
         items(totalDurationInSeconds + 1) { second ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = Helpers.formatTime(second * 1000L), style = MaterialTheme.typography.bodySmall)
-                Spacer(modifier = Modifier
-                    .width(1.dp)
-                    .height(8.dp))
+                Text(
+                    text = Helpers.formatTime(second * 1000L),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(8.dp)
+                )
             }
         }
     }
@@ -272,7 +279,8 @@ fun loadFramesForClip(context: Context, clipUri: Uri, durationSeconds: Int): Lis
         // Extract one frame per second
         for (i in 0 until durationSeconds) {
             val timeUs = (i * 1000000).toLong()
-            val frameBitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+            val frameBitmap =
+                retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
             frames.add(frameBitmap?.asImageBitmap())
         }
     } catch (e: Exception) {

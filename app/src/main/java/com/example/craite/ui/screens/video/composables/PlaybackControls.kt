@@ -62,7 +62,10 @@ fun PlaybackControls(
     ) {
         Row {
             Spacer(modifier = modifier.width(8.dp))
-            Text(text = Helpers.formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = Helpers.formatTime(currentPosition),
+                style = MaterialTheme.typography.bodySmall
+            )
             Text(
                 text = "/${Helpers.formatTime(duration)}",
                 style = MaterialTheme.typography.bodySmall.copy(color = AppColor().neutral50)
